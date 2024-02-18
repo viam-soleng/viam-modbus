@@ -2,8 +2,10 @@ package modbus_tcp
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -12,10 +14,11 @@ import (
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
 
+	"viam-modbus/common"
 	"viam-modbus/utils"
 )
 
-var Model = resource.NewModel("viam-soleng", "comm", "modbus-tcp")
+var Model = resource.NewModel("viam-soleng", "sensor", "modbus-tcp")
 
 func init() {
 	resource.RegisterComponent(
@@ -49,9 +52,7 @@ type ModbusTcpSensor struct {
 	logger     logging.Logger
 	cancelFunc context.CancelFunc
 	ctx        context.Context
-	client     *modbus.ModbusClient
-	uri        string
-	timeout    time.Duration
+	client     *common.ModbusTcpClient
 	blocks     []ModbusBlocks
 }
 
@@ -66,29 +67,85 @@ func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interfa
 	for _, block := range r.blocks {
 		switch block.Type {
 		case "coils":
-			b, err := r.ReadCoils(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadCoils(uint16(block.Offset), uint16(block.Length))
 			if err != nil {
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
 		case "discrete_inputs":
-			b, err := r.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length))
 			if err != nil {
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
 		case "holding_registers":
-			b, err := r.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length))
 			if err != nil {
 				return nil, err
 			}
 			writeUInt16ArrayToOutput(b, block, results)
 		case "input_registers":
-			b, err := r.ReadInputRegisters(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadInputRegisters(uint16(block.Offset), uint16(block.Length))
 			if err != nil {
 				return nil, err
 			}
 			writeUInt16ArrayToOutput(b, block, results)
+		case "bytes":
+			b, e := r.client.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			writeByteArrayToOutput(b, block, results)
+		case "rawBytes":
+			b, e := r.client.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			writeByteArrayToOutput(b, block, results)
+		case "uint8":
+			b, e := r.client.ReadUint8(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "int16":
+			b, e := r.client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "uint16":
+			b, e := r.client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "int32":
+			b, e := r.client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "uint32":
+			b, e := r.client.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "float32":
+			b, e := r.client.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "float64":
+			b, e := r.client.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		default:
+			results[block.Name] = "unsupported type"
 		}
 	}
 	return results, nil
@@ -104,64 +161,12 @@ func writeBoolArrayToOutput(b []bool, block ModbusBlocks, results map[string]int
 func writeUInt16ArrayToOutput(b []uint16, block ModbusBlocks, results map[string]interface{}) {
 	for i, v := range b {
 		field_name := block.Name + "." + fmt.Sprint(i)
-		results[field_name] = v
+		results[field_name] = strconv.Itoa(int(v))
 	}
 }
 
-func (r *ModbusTcpSensor) ReadCoils(offset, length uint16) ([]bool, error) {
-read:
-	b, err := r.client.ReadCoils(uint16(offset), uint16(length))
-	if err != nil {
-		r.logger.Warn("Failed to read modbus client, got EOF, reinitializing modbus client and retrying...")
-		err := r.initializeModbusClient()
-		if err != nil {
-			return nil, err
-		}
-		goto read
-	}
-	return b, nil
-}
-
-func (r *ModbusTcpSensor) ReadDiscreteInputs(offset, length uint16) ([]bool, error) {
-read:
-	b, err := r.client.ReadDiscreteInputs(uint16(offset), uint16(length))
-	if err != nil {
-		r.logger.Warn("Failed to read modbus client, got EOF, reinitializing modbus client and retrying...")
-		err := r.initializeModbusClient()
-		if err != nil {
-			return nil, err
-		}
-		goto read
-	}
-	return b, nil
-}
-
-func (r *ModbusTcpSensor) ReadHoldingRegisters(offset, length uint16) ([]uint16, error) {
-read:
-	b, err := r.client.ReadRegisters(uint16(offset), uint16(length), modbus.HOLDING_REGISTER)
-	if err != nil {
-		r.logger.Warn("Failed to read modbus client, got EOF, reinitializing modbus client and retrying...")
-		err := r.initializeModbusClient()
-		if err != nil {
-			return nil, err
-		}
-		goto read
-	}
-	return b, nil
-}
-
-func (r *ModbusTcpSensor) ReadInputRegisters(offset, length uint16) ([]uint16, error) {
-read:
-	b, err := r.client.ReadRegisters(uint16(offset), uint16(length), modbus.INPUT_REGISTER)
-	if err != nil {
-		r.logger.Warn("Failed to read modbus client, got EOF, reinitializing modbus client and retrying...")
-		err := r.initializeModbusClient()
-		if err != nil {
-			return nil, err
-		}
-		goto read
-	}
-	return b, nil
+func writeByteArrayToOutput(b []byte, block ModbusBlocks, results map[string]interface{}) {
+	results[block.Name] = hex.EncodeToString(b)
 }
 
 // Close implements resource.Resource.
@@ -210,31 +215,24 @@ func (r *ModbusTcpSensor) reconfigure(newConf *ModbusTcpConfig, deps resource.De
 			// TODO: should we exit here?
 		}
 	}
-	r.uri = newConf.Url
-	r.timeout = time.Millisecond * time.Duration(newConf.Timeout)
-	err := r.initializeModbusClient()
+
+	endianness, err := common.GetEndianness(newConf.Modbus.Endianness)
 	if err != nil {
 		return err
 	}
 
-	r.blocks = newConf.Blocks
-	return nil
-}
-
-func (r *ModbusTcpSensor) initializeModbusClient() error {
-	client, err := modbus.NewClient(&modbus.ClientConfiguration{
-		URL:     r.uri,
-		Timeout: r.timeout,
-	})
+	wordOrder, err := common.GetWordOrder(newConf.Modbus.WordOrder)
 	if err != nil {
-		r.logger.Errorf("Failed to create modbus client: %#v", err)
 		return err
 	}
-	err = client.Open()
+
+	timeout := time.Millisecond * time.Duration(newConf.Modbus.Timeout)
+	client, err := common.NewModbusTcpClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder)
 	if err != nil {
-		r.logger.Errorf("Failed to open modbus client: %#v", err)
 		return err
 	}
 	r.client = client
+
+	r.blocks = newConf.Blocks
 	return nil
 }

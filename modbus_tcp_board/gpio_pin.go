@@ -4,35 +4,25 @@ import (
 	"context"
 	"errors"
 	"sync"
+
+	"viam-modbus/common"
 )
 
-var OUTPUT_PIN = "output"
-var INPUT_PIN = "input"
-
 type ModbusGpioPin struct {
-	mu     *sync.RWMutex
-	offset uint16
-	board  *ModbusTcpBoard
+	mu      *sync.RWMutex
+	offset  uint16
+	board   *ModbusTcpBoard
+	pinType common.PinType
 }
 
 // Get implements board.GPIOPin.
 func (r *ModbusGpioPin) Get(ctx context.Context, extra map[string]interface{}) (bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	i, e := executeWithRetry(r.board, func() (int, error) {
-		b, e := r.board.client.ReadCoil(r.offset)
-		if b {
-			return 1, e
-		} else {
-			return 0, e
-		}
-	})
-
-	// This is kind of dumb, but it gets the job done without having to duplicate the executeWithRetry function for bools
-	if i == 1 {
-		return true, e
+	if r.pinType == common.INPUT_PIN {
+		return r.board.client.ReadDiscreteInput(r.offset)
 	} else {
-		return false, e
+		return r.board.client.ReadCoil(r.offset)
 	}
 }
 
@@ -50,11 +40,10 @@ func (*ModbusGpioPin) PWMFreq(ctx context.Context, extra map[string]interface{})
 func (r *ModbusGpioPin) Set(ctx context.Context, high bool, extra map[string]interface{}) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	_, e := executeWithRetry(r.board, func() (int, error) {
-		err := r.board.client.WriteCoil(r.offset, high)
-		return 0, err
-	})
-	return e
+	if r.pinType == common.INPUT_PIN {
+		return common.ErrSetInputPin
+	}
+	return r.board.client.WriteCoil(r.offset, high)
 }
 
 // SetPWM implements board.GPIOPin.
@@ -67,10 +56,11 @@ func (*ModbusGpioPin) SetPWMFreq(ctx context.Context, freqHz uint, extra map[str
 	return errors.ErrUnsupported
 }
 
-func NewModbusGpioPin(board *ModbusTcpBoard, conf ModbusGpioPinConfig) *ModbusGpioPin {
+func NewModbusGpioPin(board *ModbusTcpBoard, offset uint16, pinType common.PinType) *ModbusGpioPin {
 	return &ModbusGpioPin{
-		mu:     &board.mu,
-		offset: uint16(conf.Offset),
-		board:  board,
+		mu:      &board.mu,
+		offset:  offset,
+		board:   board,
+		pinType: pinType,
 	}
 }

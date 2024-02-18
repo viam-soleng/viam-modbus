@@ -29,32 +29,24 @@ func (r *ModbusAnlogPin) Read(ctx context.Context, extra map[string]interface{})
 
 	switch r.dataType {
 	case "uint32":
-		return executeWithRetry(r.board, func() (int, error) {
-			val, err := r.board.client.ReadUint32(r.offset, r.pinType)
-			return int(val), err
-		})
+		val, err := r.board.client.ReadUInt32(r.offset, r.pinType)
+		return int(val), err
 	case "uint64":
-		return executeWithRetry(r.board, func() (int, error) {
-			val, err := r.board.client.ReadUint64(r.offset, r.pinType)
-			return int(val), err
-		})
+		val, err := r.board.client.ReadUInt64(r.offset, r.pinType)
+		return int(val), err
 	case "float32":
-		return executeWithRetry(r.board, func() (int, error) {
-			val, err := r.board.client.ReadFloat32(r.offset, r.pinType)
-			return int(val), err
-		})
+		val, err := r.board.client.ReadFloat32(r.offset, r.pinType)
+		return int(val), err
 	case "float64":
-		return executeWithRetry(r.board, func() (int, error) {
-			val, err := r.board.client.ReadFloat64(r.offset, r.pinType)
-			return int(val), err
-		})
+		val, err := r.board.client.ReadFloat64(r.offset, r.pinType)
+		return int(val), err
 	default:
 		return 0, errors.New("invalid data type")
 	}
 }
 
 // Why do we need a board here? because we need to reinitialize the modbus client if there is an error. this can probably be done better, but here we are
-func NewModbusAnalogPin(board *ModbusTcpBoard, conf ModbusAnalogPinConfig) (*ModbusAnlogPin, error) {
+func NewModbusAnalogPin(board *ModbusTcpBoard, conf ModbusAnalogPinCloudConfig) (*ModbusAnlogPin, error) {
 	var t modbus.RegType
 	if conf.PinType == "input" {
 		t = modbus.INPUT_REGISTER

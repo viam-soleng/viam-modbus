@@ -3,14 +3,15 @@ package modbus_tcp
 import (
 	"errors"
 	"fmt"
+
+	"viam-modbus/common"
 )
 
 type ModbusTcpConfig struct {
 	// use "tcp://host:port" format for TCP
 	// use "udp://device:port" format for UDP
-	Url     string         `json:"url"`
-	Timeout int            `json:"timeout_ms"`
-	Blocks  []ModbusBlocks `json:"blocks"`
+	Modbus *common.ModbusTcpClientCloudConfig `json:"modbus"`
+	Blocks []ModbusBlocks                     `json:"blocks"`
 }
 
 type ModbusBlocks struct {
@@ -21,23 +22,42 @@ type ModbusBlocks struct {
 }
 
 func (cfg *ModbusTcpConfig) Validate(path string) ([]string, error) {
-	if cfg.Url == "" {
-		return nil, errors.New("url is required")
+	if cfg.Modbus == nil {
+		return nil, errors.New("modbus is required")
 	}
-	if cfg.Timeout < 0 {
-		return nil, errors.New("timeout must be non-negative")
+	e := cfg.Modbus.Validate()
+	if e != nil {
+		return nil, fmt.Errorf("modbus: %v", e)
+	}
+
+	if cfg.Blocks == nil {
+		return nil, errors.New("blocks is required")
 	}
 	if len(cfg.Blocks) == 0 {
 		return nil, errors.New("blocks must be non-empty")
 	}
 	for i, block := range cfg.Blocks {
-		// TODO: handle special case where type doesn't require a length
+		if block.Name == "" {
+			return nil, fmt.Errorf("name is required in block %v", i)
+		}
+		if block.Type == "" {
+			return nil, fmt.Errorf("type is required in block %v", i)
+		}
 		if block.Offset < 0 {
 			return nil, fmt.Errorf("offset must be non-negative in block %v", i)
 		}
-		if block.Length <= 0 {
+		if shouldCheckLength(block.Type) && block.Length <= 0 {
 			return nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
 	}
 	return nil, nil
+}
+
+func shouldCheckLength(t string) bool {
+	switch t {
+	case "coils", "discrete_inputs", "holding_registers", "input_registers", "bytes", "rawBytes":
+		return true
+	default:
+		return false
+	}
 }
