@@ -107,19 +107,19 @@ func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interfa
 			if e != nil {
 				return nil, e
 			}
-			results[block.Name] = b
+			results[block.Name] = int32(b)
 		case "int16":
 			b, e := r.client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
 			if e != nil {
 				return nil, e
 			}
-			results[block.Name] = b
+			results[block.Name] = int32(b)
 		case "uint16":
 			b, e := r.client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
 			if e != nil {
 				return nil, e
 			}
-			results[block.Name] = b
+			results[block.Name] = int32(b)
 		case "int32":
 			b, e := r.client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
 			if e != nil {

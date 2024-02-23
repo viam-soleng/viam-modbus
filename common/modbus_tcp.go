@@ -81,6 +81,7 @@ func (r *ModbusTcpClient) initializeModbusClient() error {
 		r.logger.Errorf("Failed to create modbus client: %#v", err)
 		return err
 	}
+	client.SetEncoding(r.endianness, r.wordOrder)
 	err = client.Open()
 	if err != nil {
 		r.logger.Errorf("Failed to open modbus client: %#v", err)
@@ -220,6 +221,8 @@ func (r *ModbusTcpClient) ReadInt32(offset uint16, regType modbus.RegType) (int3
 	availableRetries := 3
 
 	for availableRetries > 0 {
+		v, _ := r.modbusClient.ReadRegisters(offset, 2, regType)
+		r.logger.Infof("ReadInt32: %#v", v)
 		b, err := r.modbusClient.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
@@ -238,6 +241,8 @@ func (r *ModbusTcpClient) ReadUInt32(offset uint16, regType modbus.RegType) (uin
 	availableRetries := 3
 
 	for availableRetries > 0 {
+		v, _ := r.modbusClient.ReadRegisters(offset, 2, regType)
+		r.logger.Infof("ReadUInt32: %#v", v)
 		b, err := r.modbusClient.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
