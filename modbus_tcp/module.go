@@ -153,14 +153,14 @@ func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interfa
 
 func writeBoolArrayToOutput(b []bool, block ModbusBlocks, results map[string]interface{}) {
 	for i, v := range b {
-		field_name := block.Name + "." + fmt.Sprint(i)
+		field_name := block.Name + "_" + fmt.Sprint(i)
 		results[field_name] = v
 	}
 }
 
 func writeUInt16ArrayToOutput(b []uint16, block ModbusBlocks, results map[string]interface{}) {
 	for i, v := range b {
-		field_name := block.Name + "." + fmt.Sprint(i)
+		field_name := block.Name + "_" + fmt.Sprint(i)
 		results[field_name] = strconv.Itoa(int(v))
 	}
 }
