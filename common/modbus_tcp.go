@@ -222,8 +222,6 @@ func (r *ModbusTcpClient) ReadInt32(offset uint16, regType modbus.RegType) (int3
 	availableRetries := 3
 
 	for availableRetries > 0 {
-		v, _ := r.modbusClient.ReadRegisters(offset, 2, regType)
-		r.logger.Debugf("ReadInt32: %#v", v)
 		b, err := r.modbusClient.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
@@ -242,8 +240,6 @@ func (r *ModbusTcpClient) ReadUInt32(offset uint16, regType modbus.RegType) (uin
 	availableRetries := 3
 
 	for availableRetries > 0 {
-		v, _ := r.modbusClient.ReadRegisters(offset, 2, regType)
-		r.logger.Debugf("ReadUInt32: %#v", v)
 		b, err := r.modbusClient.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
@@ -312,7 +308,7 @@ func (r *ModbusTcpClient) ReadFloat64(offset uint16, regType modbus.RegType) (fl
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadUint8(offset uint16, regType modbus.RegType) (uint8, error) {
+func (r *ModbusTcpClient) ReadUInt8(offset uint16, regType modbus.RegType) (uint8, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -347,6 +343,7 @@ func (r *ModbusTcpClient) ReadInt16(offset uint16, regType modbus.RegType) (int1
 	}
 	return 0, ErrRetriesExhausted
 }
+
 func (r *ModbusTcpClient) ReadUInt16(offset uint16, regType modbus.RegType) (uint16, error) {
 	availableRetries := 3
 
@@ -399,4 +396,46 @@ func (r *ModbusTcpClient) ReadRawBytes(offset, length uint16, regType modbus.Reg
 		}
 	}
 	return nil, ErrRetriesExhausted
+}
+
+func (r *ModbusTcpClient) WriteUInt32(offset uint16, value uint32) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteUint32(offset, value)
+	})
+}
+
+func (r *ModbusTcpClient) WriteUInt64(offset uint16, value uint64) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteUint64(offset, value)
+	})
+}
+
+func (r *ModbusTcpClient) WriteFloat32(offset uint16, value float32) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteFloat32(offset, value)
+	})
+}
+
+func (r *ModbusTcpClient) WriteFloat64(offset uint16, value float64) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteFloat64(offset, value)
+	})
+}
+
+func (r *ModbusTcpClient) WriteWithRetry(w func() error) error {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		err := w()
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	return ErrRetriesExhausted
 }
