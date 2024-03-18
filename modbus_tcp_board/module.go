@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -84,6 +85,14 @@ func (*ModbusTcpBoard) DigitalInterruptNames() []string {
 
 // GPIOPinByName implements board.Board.
 func (r *ModbusTcpBoard) GPIOPinByName(name string) (board.GPIOPin, error) {
+	r.logger.Debugf("Getting GPIO pin by name: %v %T", name, name)
+	// Hack to fix data capture bug
+	if strings.HasPrefix(name, "[") {
+		lenToTrim := len("[type.googleapis.com/google.protobuf.StringValue]:{value:\"")
+		s := name[lenToTrim:]
+		s = s[:len(s)-2]
+		name = s
+	}
 	if pin, ok := r.gpioPins[name]; ok {
 		return pin, nil
 	}

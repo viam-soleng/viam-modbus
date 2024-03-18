@@ -43,6 +43,7 @@ type ModbusTcpClient struct {
 	modbusClient *modbus.ModbusClient
 }
 
+// TODO: Need to make it so reconfigure can update the settings here when stuck in a re-retry loop
 func NewModbusTcpClient(logger logging.Logger, uri string, timeout time.Duration, endianness modbus.Endianness, wordOrder modbus.WordOrder) (*ModbusTcpClient, error) {
 	client := &ModbusTcpClient{
 		logger:     logger,
@@ -222,7 +223,7 @@ func (r *ModbusTcpClient) ReadInt32(offset uint16, regType modbus.RegType) (int3
 
 	for availableRetries > 0 {
 		v, _ := r.modbusClient.ReadRegisters(offset, 2, regType)
-		r.logger.Infof("ReadInt32: %#v", v)
+		r.logger.Debugf("ReadInt32: %#v", v)
 		b, err := r.modbusClient.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
@@ -242,7 +243,7 @@ func (r *ModbusTcpClient) ReadUInt32(offset uint16, regType modbus.RegType) (uin
 
 	for availableRetries > 0 {
 		v, _ := r.modbusClient.ReadRegisters(offset, 2, regType)
-		r.logger.Infof("ReadUInt32: %#v", v)
+		r.logger.Debugf("ReadUInt32: %#v", v)
 		b, err := r.modbusClient.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
