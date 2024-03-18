@@ -1,0 +1,17 @@
+{
+  "module_id": "viam-soleng:viam-modbus",
+  "visibility": "public",
+  "url": "https://github.com/viam-soleng/viam-modbus",
+  "description": "A module to read and write data from Modbus devices",
+  "models": [
+    {
+      "api": "rdk:component:board",
+      "model": "viam-soleng:board:modbus-tcp"
+    },
+    {
+      "api":"rdk:component:sensor",
+      "model":"viam-soleng:sensor:modbus-tcp"
+    }
+  ],
+  "entrypoint": "viam-modbus"
+}
