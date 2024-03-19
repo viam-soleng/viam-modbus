@@ -1,6 +1,6 @@
 package utils
 
-var Version = "v0.0.1"
+var Version = "v0.0.3"
 
 // Change the namespace to match your organization name so it can be uploaded to your private registry
 var Namespace = "viam-soleng"

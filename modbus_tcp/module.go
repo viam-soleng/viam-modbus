@@ -103,7 +103,7 @@ func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interfa
 			}
 			writeByteArrayToOutput(b, block, results)
 		case "uint8":
-			b, e := r.client.ReadUint8(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER)
 			if e != nil {
 				return nil, e
 			}

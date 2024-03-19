@@ -11,20 +11,21 @@ type PinType string
 const (
 	OUTPUT_PIN PinType = "output"
 	INPUT_PIN  PinType = "input"
+	UNKNOWN    PinType = "unknown"
 )
 
 var ErrInvalidPinType = errors.New("invalid pin type")
 var ErrSetInputPin = errors.New("cannot set input pin")
 var ErrRetriesExhausted = errors.New("retries exhausted")
 
-func NewPinType(s string) (PinType, error) {
+func NewPinType(s string) PinType {
 	switch s {
 	case "output":
-		return OUTPUT_PIN, nil
+		return OUTPUT_PIN
 	case "input":
-		return INPUT_PIN, nil
+		return INPUT_PIN
 	default:
-		return "", ErrInvalidPinType
+		return UNKNOWN
 	}
 }
 
