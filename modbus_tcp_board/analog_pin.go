@@ -6,6 +6,8 @@ import (
 	"sync"
 
 	"github.com/simonvetter/modbus"
+
+	"viam-modbus/common"
 )
 
 type ModbusAnalogPin struct {
@@ -61,6 +63,10 @@ func (r *ModbusAnalogPin) Write(ctx context.Context, value int32, extra map[stri
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	switch r.dataType {
+	case "int16":
+		return r.board.client.WriteUInt16(r.offset, uint16(value))
+	case "uint16":
+		return r.board.client.WriteUInt16(r.offset, uint16(value))
 	case "int32":
 		return r.board.client.WriteUInt32(r.offset, uint32(value))
 	case "uint32":
@@ -79,12 +85,13 @@ func (r *ModbusAnalogPin) Write(ctx context.Context, value int32, extra map[stri
 // Why do we need a board here? because we need to reinitialize the modbus client if there is an error. this can probably be done better, but here we are
 func NewModbusAnalogPin(board *ModbusTcpBoard, conf ModbusAnalogPinCloudConfig) (*ModbusAnalogPin, error) {
 	var t modbus.RegType
-	if conf.PinType == "input" {
+	switch common.NewPinType(conf.PinType) {
+	case common.INPUT_PIN:
 		t = modbus.INPUT_REGISTER
-	} else if conf.PinType == "holding" {
+	case common.OUTPUT_PIN:
 		t = modbus.HOLDING_REGISTER
-	} else {
-		return nil, errors.New("invalid pin type")
+	default:
+		return nil, common.ErrInvalidPinType
 	}
 	return &ModbusAnalogPin{
 		mu:       &board.mu,

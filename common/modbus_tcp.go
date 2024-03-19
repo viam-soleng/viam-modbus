@@ -398,6 +398,12 @@ func (r *ModbusTcpClient) ReadRawBytes(offset, length uint16, regType modbus.Reg
 	return nil, ErrRetriesExhausted
 }
 
+func (r *ModbusTcpClient) WriteUInt16(offset uint16, value uint16) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteRegister(offset, value)
+	})
+}
+
 func (r *ModbusTcpClient) WriteUInt32(offset uint16, value uint32) error {
 	return r.WriteWithRetry(func() error {
 		return r.modbusClient.WriteUint32(offset, value)

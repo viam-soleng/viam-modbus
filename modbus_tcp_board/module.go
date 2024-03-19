@@ -194,9 +194,9 @@ func (r *ModbusTcpBoard) reconfigure(newConf *ModbusTcpBoardCloudConfig, deps re
 	r.gpioPins = map[string]*ModbusGpioPin{}
 	for _, pinConf := range newConf.GpioPins {
 		r.logger.Debugf("Creating GPIO pin: %v", pinConf.Name)
-		pinType, err := common.NewPinType(pinConf.PinType)
-		if err != nil {
-			return err
+		pinType := common.NewPinType(pinConf.PinType)
+		if pinType == common.UNKNOWN {
+			return common.ErrInvalidPinType
 		}
 		pin := NewModbusGpioPin(r, uint16(pinConf.Offset), pinType)
 		r.gpioPins[pinConf.Name] = pin
