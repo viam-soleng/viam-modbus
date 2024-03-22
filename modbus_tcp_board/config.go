@@ -45,7 +45,7 @@ func (cfg *ModbusTcpBoardCloudConfig) Validate(path string) ([]string, error) {
 			if pin.PinType == "" {
 				return nil, fmt.Errorf("type is required in pin %v", pin.Name)
 			}
-			if _, err := common.NewPinType(pin.PinType); err != nil {
+			if p := common.NewPinType(pin.PinType); p == common.UNKNOWN {
 				return nil, fmt.Errorf("type must be %v or %v in pin %v", common.OUTPUT_PIN, common.INPUT_PIN, pin.Name)
 			}
 			if pin.Offset < 0 {
@@ -62,7 +62,7 @@ func (cfg *ModbusTcpBoardCloudConfig) Validate(path string) ([]string, error) {
 			if pin.PinType == "" {
 				return nil, fmt.Errorf("type is required in pin %v", pin.Name)
 			}
-			if _, err := common.NewPinType(pin.PinType); err != nil {
+			if p := common.NewPinType(pin.PinType); p == common.UNKNOWN {
 				return nil, fmt.Errorf("type must be %v or %v in pin %v", common.OUTPUT_PIN, common.INPUT_PIN, pin.Name)
 			}
 			if pin.Offset < 0 {

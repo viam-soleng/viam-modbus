@@ -33,9 +33,6 @@ func (cfg *ModbusTcpConfig) Validate(path string) ([]string, error) {
 	if cfg.Blocks == nil {
 		return nil, errors.New("blocks is required")
 	}
-	if len(cfg.Blocks) == 0 {
-		return nil, errors.New("blocks must be non-empty")
-	}
 	for i, block := range cfg.Blocks {
 		if block.Name == "" {
 			return nil, fmt.Errorf("name is required in block %v", i)

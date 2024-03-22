@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -56,15 +57,32 @@ type ModbusTcpBoard struct {
 	ctx        context.Context
 
 	gpioPins   map[string]*ModbusGpioPin
-	analogPins map[string]*ModbusAnlogPin
+	analogPins map[string]*ModbusAnalogPin
+}
+
+func (r *ModbusTcpBoard) getAnalogPin(name string) (*ModbusAnalogPin, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if pin, ok := r.analogPins[name]; ok {
+		return pin, nil
+	}
+	return nil, errors.New("pin not found")
 }
 
 // AnalogReaderByName implements board.Board.
 func (r *ModbusTcpBoard) AnalogReaderByName(name string) (board.AnalogReader, bool) {
-	if pin, ok := r.analogPins[name]; ok {
-		return pin, false
+	if pin, err := r.getAnalogPin(name); err == nil {
+		return pin, true
 	}
 	return nil, false
+}
+
+// WriteAnalog implements board.Board.
+func (r *ModbusTcpBoard) WriteAnalog(ctx context.Context, name string, value int32, extra map[string]interface{}) error {
+	if pin, err := r.getAnalogPin(name); err == nil {
+		return pin.Write(ctx, value, extra)
+	}
+	return errors.New("pin not found")
 }
 
 // AnalogReaderNames implements board.Board.
@@ -84,6 +102,14 @@ func (*ModbusTcpBoard) DigitalInterruptNames() []string {
 
 // GPIOPinByName implements board.Board.
 func (r *ModbusTcpBoard) GPIOPinByName(name string) (board.GPIOPin, error) {
+	r.logger.Debugf("Getting GPIO pin by name: %v %T", name, name)
+	// Hack to fix data capture bug
+	if strings.HasPrefix(name, "[") {
+		lenToTrim := len("[type.googleapis.com/google.protobuf.StringValue]:{value:\"")
+		s := name[lenToTrim:]
+		s = s[:len(s)-2]
+		name = s
+	}
 	if pin, ok := r.gpioPins[name]; ok {
 		return pin, nil
 	}
@@ -98,11 +124,6 @@ func (*ModbusTcpBoard) SetPowerMode(ctx context.Context, mode pb.PowerMode, dura
 // Status implements board.Board.
 func (*ModbusTcpBoard) Status(ctx context.Context, extra map[string]interface{}) (*commonpb.BoardStatus, error) {
 	return &commonpb.BoardStatus{}, nil
-}
-
-// WriteAnalog implements board.Board.
-func (*ModbusTcpBoard) WriteAnalog(ctx context.Context, pin string, value int32, extra map[string]interface{}) error {
-	return errors.ErrUnsupported
 }
 
 func (r *ModbusTcpBoard) Close(ctx context.Context) error {
@@ -173,16 +194,16 @@ func (r *ModbusTcpBoard) reconfigure(newConf *ModbusTcpBoardCloudConfig, deps re
 	r.gpioPins = map[string]*ModbusGpioPin{}
 	for _, pinConf := range newConf.GpioPins {
 		r.logger.Debugf("Creating GPIO pin: %v", pinConf.Name)
-		pinType, err := common.NewPinType(pinConf.PinType)
-		if err != nil {
-			return err
+		pinType := common.NewPinType(pinConf.PinType)
+		if pinType == common.UNKNOWN {
+			return common.ErrInvalidPinType
 		}
 		pin := NewModbusGpioPin(r, uint16(pinConf.Offset), pinType)
 		r.gpioPins[pinConf.Name] = pin
 	}
 	r.logger.Debug("Initialized GPIO pins")
 
-	r.analogPins = map[string]*ModbusAnlogPin{}
+	r.analogPins = map[string]*ModbusAnalogPin{}
 	for _, pinConf := range newConf.AnalogPins {
 		r.logger.Debugf("Creating Analog pin: %v", pinConf.Name)
 		pin, err := NewModbusAnalogPin(r, pinConf)
