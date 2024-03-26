@@ -10,6 +10,9 @@ on:
   pull_request_target:
     branches: [ "main" ]
 
+env:
+  binary_file_name: viam-modbus
+
 jobs:
 
   build:
@@ -40,15 +43,21 @@ jobs:
         go-version: '1.21'
 
     - name: Build
-      run: go build -o viam-modbus -v .
+      run: go build -o ${{ env.binary_file_name }} -v .
 
     - name: Package
-      run: tar -zcf viam-modbus-${{ env.os }}-${{ env.GOARCH }}.tar.gz viam-modbus
+      run: tar -zcf ${{ env.binary_file_name }}-${{ env.os }}-${{ env.GOARCH }}.tar.gz ${{ env.binary_file_name }}
     
     - uses: actions/upload-artifact@v3
       with:
-        name: viam-modbus-${{ env.os }}-${{ env.GOARCH }}
-        path: viam-modbus-${{ env.os }}-${{ env.GOARCH }}.tar.gz
+        name: ${{ env.binary_file_name }}-${{ env.os }}-${{ env.GOARCH }}
+        path: ${{ env.binary_file_name }}-${{ env.os }}-${{ env.GOARCH }}.tar.gz
+    - name: Upload Release Asset
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        draft: true
+        files: ${{ env.binary_file_name }}-${{ env.os }}-${{ env.GOARCH }}.tar.gz
 
   # test:
   #   runs-on: ubuntu-latest
@@ -84,24 +93,13 @@ jobs:
       GOARCH: ${{ matrix.arch }}
     if: github.event_name == 'release'
     steps:
-    - name: Check out code
-      if: github.event_name != 'pull_request_target'
-      uses: actions/checkout@v3
-
-    - name: Check out PR branch code
-      if: github.event_name == 'pull_request_target'
-      uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 0
-
     - uses: actions/download-artifact@v3
       with:
-        name: viam-modbus-${{ env.os }}-${{ env.GOARCH }}
+        name: ${{ env.binary_file_name }}-${{ env.os }}-${{ env.GOARCH }}.tar.gz
     - name: Upload
       uses: viamrobotics/upload-module@main
       with:
-        module-path: viam-modbus-${{ env.os }}-${{ env.GOARCH }}.tar.gz
+        module-path: ${{ env.binary_file_name }}-${{ env.os }}-${{ env.GOARCH }}
         platform: ${{ env.GOOS }}/${{ env.GOARCH }}
         org-id: 3a94d2f9-082b-44ad-8569-a9d8a1330050
         version: ${{ github.event_name == 'release' && github.ref_name || format('0.0.0-{0}.{1}', github.ref_name, github.run_number) }} # <-- see 'Versioning' section below for explanation
