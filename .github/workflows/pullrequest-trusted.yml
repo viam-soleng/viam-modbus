@@ -20,6 +20,7 @@ jobs:
     uses: viam-soleng/viam-modbus/.github/workflows/test.yml@main
 
   slack-workflow-status:
+    if: ${{ failure() }} 
     name: Post Workflow Status To Slack
     needs:
       - test
