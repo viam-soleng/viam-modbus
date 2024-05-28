@@ -6,8 +6,8 @@ require (
 	github.com/simonvetter/modbus v1.6.0
 	github.com/stretchr/testify v1.9.0
 	go.viam.com/api v0.1.302
-	go.viam.com/rdk v0.27.1-0.20240517182344-8789c0b8d6a9
-	go.viam.com/utils v0.1.77
+	go.viam.com/rdk v0.28.0
+	go.viam.com/utils v0.1.79
 )
 
 require (
