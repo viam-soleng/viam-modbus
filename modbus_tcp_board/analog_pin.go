@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/simonvetter/modbus"
+	"go.viam.com/rdk/components/board"
 
 	"viam-modbus/common"
 )
@@ -25,41 +26,41 @@ func (*ModbusAnalogPin) Close(ctx context.Context) error {
 }
 
 // Read implements board.AnalogReader.
-func (r *ModbusAnalogPin) Read(ctx context.Context, extra map[string]interface{}) (int, error) {
+func (r *ModbusAnalogPin) Read(ctx context.Context, extra map[string]interface{}) (board.AnalogValue, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	switch r.dataType {
 	case "int16":
 		val, err := r.board.client.ReadInt16(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	case "int32":
 		val, err := r.board.client.ReadInt32(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	case "uint8":
 		val, err := r.board.client.ReadUInt8(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	case "uint16":
 		val, err := r.board.client.ReadUInt16(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	case "uint32":
 		val, err := r.board.client.ReadUInt32(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	case "uint64":
 		val, err := r.board.client.ReadUInt64(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	case "float32":
 		val, err := r.board.client.ReadFloat32(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	case "float64":
 		val, err := r.board.client.ReadFloat64(r.offset, r.pinType)
-		return int(val), err
+		return board.AnalogValue{Value: int(val)}, err
 	default:
-		return 0, errors.New("invalid data type")
+		return board.AnalogValue{}, errors.New("invalid data type")
 	}
 }
 
-func (r *ModbusAnalogPin) Write(ctx context.Context, value int32, extra map[string]interface{}) error {
+func (r *ModbusAnalogPin) Write(ctx context.Context, value int, extra map[string]interface{}) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	switch r.dataType {
