@@ -8,13 +8,13 @@ import (
 	"sync"
 	"time"
 
+	"viam-modbus/common"
+	"viam-modbus/utils"
+
 	pb "go.viam.com/api/component/board/v1"
 	"go.viam.com/rdk/components/board"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
-
-	"viam-modbus/common"
-	"viam-modbus/utils"
 )
 
 var Model = resource.NewModel("viam-soleng", "board", "modbus-tcp")
@@ -71,10 +71,18 @@ func (r *ModbusTcpBoard) getAnalogPin(name string) (*ModbusAnalogPin, error) {
 // AnalogReaderByName implements board.Board.
 func (r *ModbusTcpBoard) AnalogByName(name string) (board.Analog, error) {
 	pin, err := r.getAnalogPin(name)
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return pin, nil
 	}
-	return pin, nil
+	return nil, err
+}
+
+// WriteAnalog implements board.Board.
+func (r *ModbusTcpBoard) WriteAnalog(ctx context.Context, name string, value int32, extra map[string]interface{}) error {
+	if pin, err := r.getAnalogPin(name); err == nil {
+		return pin.Write(ctx, int(value), extra)
+	}
+	return errors.New("pin not found")
 }
 
 // AnalogReaderNames implements board.Board.
@@ -113,8 +121,10 @@ func (*ModbusTcpBoard) SetPowerMode(ctx context.Context, mode pb.PowerMode, dura
 	return errors.ErrUnsupported
 }
 
-// StreamTicks implements board.Board.
-func (*ModbusTcpBoard) StreamTicks(ctx context.Context, interrupts []board.DigitalInterrupt, ch chan board.Tick, extra map[string]interface{}) error {
+// StreamTicks starts a stream of digital interrupt ticks.
+func (r *ModbusTcpBoard) StreamTicks(ctx context.Context, interrupts []board.DigitalInterrupt, ch chan board.Tick,
+	extra map[string]interface{},
+) error {
 	return errors.ErrUnsupported
 }
 
