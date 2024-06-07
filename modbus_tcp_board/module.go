@@ -8,14 +8,13 @@ import (
 	"sync"
 	"time"
 
-	commonpb "go.viam.com/api/common/v1"
+	"viam-modbus/common"
+	"viam-modbus/utils"
+
 	pb "go.viam.com/api/component/board/v1"
 	"go.viam.com/rdk/components/board"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
-
-	"viam-modbus/common"
-	"viam-modbus/utils"
 )
 
 var Model = resource.NewModel("viam-soleng", "board", "modbus-tcp")
@@ -70,29 +69,30 @@ func (r *ModbusTcpBoard) getAnalogPin(name string) (*ModbusAnalogPin, error) {
 }
 
 // AnalogReaderByName implements board.Board.
-func (r *ModbusTcpBoard) AnalogReaderByName(name string) (board.AnalogReader, bool) {
-	if pin, err := r.getAnalogPin(name); err == nil {
-		return pin, true
+func (r *ModbusTcpBoard) AnalogByName(name string) (board.Analog, error) {
+	pin, err := r.getAnalogPin(name)
+	if err == nil {
+		return pin, nil
 	}
-	return nil, false
+	return nil, err
 }
 
 // WriteAnalog implements board.Board.
 func (r *ModbusTcpBoard) WriteAnalog(ctx context.Context, name string, value int32, extra map[string]interface{}) error {
 	if pin, err := r.getAnalogPin(name); err == nil {
-		return pin.Write(ctx, value, extra)
+		return pin.Write(ctx, int(value), extra)
 	}
 	return errors.New("pin not found")
 }
 
 // AnalogReaderNames implements board.Board.
-func (*ModbusTcpBoard) AnalogReaderNames() []string {
+func (*ModbusTcpBoard) AnalogNames() []string {
 	return nil
 }
 
 // DigitalInterruptByName implements board.Board.
-func (*ModbusTcpBoard) DigitalInterruptByName(name string) (board.DigitalInterrupt, bool) {
-	return nil, false
+func (*ModbusTcpBoard) DigitalInterruptByName(name string) (board.DigitalInterrupt, error) {
+	return nil, errors.ErrUnsupported
 }
 
 // DigitalInterruptNames implements board.Board.
@@ -121,9 +121,11 @@ func (*ModbusTcpBoard) SetPowerMode(ctx context.Context, mode pb.PowerMode, dura
 	return errors.ErrUnsupported
 }
 
-// Status implements board.Board.
-func (*ModbusTcpBoard) Status(ctx context.Context, extra map[string]interface{}) (*commonpb.BoardStatus, error) {
-	return &commonpb.BoardStatus{}, nil
+// StreamTicks starts a stream of digital interrupt ticks.
+func (r *ModbusTcpBoard) StreamTicks(ctx context.Context, interrupts []board.DigitalInterrupt, ch chan board.Tick,
+	extra map[string]interface{},
+) error {
+	return errors.ErrUnsupported
 }
 
 func (r *ModbusTcpBoard) Close(ctx context.Context) error {

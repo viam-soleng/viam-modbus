@@ -59,7 +59,7 @@ func (r *ModbusAnalogPin) Read(ctx context.Context, extra map[string]interface{}
 	}
 }
 
-func (r *ModbusAnalogPin) Write(ctx context.Context, value int32, extra map[string]interface{}) error {
+func (r *ModbusAnalogPin) Write(ctx context.Context, value int, extra map[string]interface{}) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	switch r.dataType {
