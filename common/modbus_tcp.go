@@ -74,8 +74,22 @@ func (r *ModbusTcpClient) reinitializeModbusClient() error {
 func (r *ModbusTcpClient) initializeModbusClient() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
+	// TODO: for an RTU (serial) device/bus
+	/*
+	   client, err = modbus.NewClient(&modbus.ClientConfiguration{
+	       URL:      "rtu:///dev/ttyUSB0",
+	       Speed:    19200,                   // default
+	       DataBits: 8,                       // default, optional
+	       Parity:   modbus.PARITY_NONE,      // default, optional
+	       StopBits: 2,                       // default if no parity, optional
+	       Timeout:  300 * time.Millisecond,
+	   })
+	*/
+
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
 		URL:     r.uri,
+		Speed:   19200,
 		Timeout: r.timeout,
 	})
 	if err != nil {
