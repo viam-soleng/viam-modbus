@@ -3,8 +3,8 @@ OS=$(shell uname)
 GIT_REVISION = $(shell git rev-parse HEAD | tr -d '\n')
 TAG_VERSION?=$(shell git tag --points-at | sort -Vr | head -n1)
 GO_BUILD_LDFLAGS = -ldflags "-X 'main.Version=${TAG_VERSION}' -X 'main.GitRevision=${GIT_REVISION}'"
-GOPATH = $(HOME)/go/bin
-export PATH := ${GOPATH}:$(PATH) 
+#GOPATH = $(HOME)/go/bin
+#export PATH := ${GOPATH}:$(PATH) 
 SHELL := /usr/bin/env bash 
 
 default: build

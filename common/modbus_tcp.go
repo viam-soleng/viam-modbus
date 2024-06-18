@@ -89,7 +89,7 @@ func (r *ModbusTcpClient) initializeModbusClient() error {
 
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
 		URL:     r.uri,
-		Speed:   19200,
+		Speed:   115200,
 		Timeout: r.timeout,
 	})
 	if err != nil {
