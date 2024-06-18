@@ -52,7 +52,7 @@ type ModbusTcpSensor struct {
 	logger     logging.Logger
 	cancelFunc context.CancelFunc
 	ctx        context.Context
-	client     *common.ModbusTcpClient
+	client     *common.ModbusClient
 	blocks     []ModbusBlocks
 }
 
@@ -227,7 +227,7 @@ func (r *ModbusTcpSensor) reconfigure(newConf *ModbusTcpConfig, deps resource.De
 	}
 
 	timeout := time.Millisecond * time.Duration(newConf.Modbus.Timeout)
-	client, err := common.NewModbusTcpClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder)
+	client, err := common.NewModbusTcpClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder, newConf.Modbus.Speed)
 	if err != nil {
 		return err
 	}

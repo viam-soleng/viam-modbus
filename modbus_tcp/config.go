@@ -10,8 +10,8 @@ import (
 type ModbusTcpConfig struct {
 	// use "tcp://host:port" format for TCP
 	// use "udp://device:port" format for UDP
-	Modbus *common.ModbusTcpClientCloudConfig `json:"modbus"`
-	Blocks []ModbusBlocks                     `json:"blocks"`
+	Modbus *common.ModbusClientCloudConfig `json:"modbus"`
+	Blocks []ModbusBlocks                  `json:"blocks"`
 }
 
 type ModbusBlocks struct {
@@ -25,6 +25,7 @@ func (cfg *ModbusTcpConfig) Validate(path string) ([]string, error) {
 	if cfg.Modbus == nil {
 		return nil, errors.New("modbus is required")
 	}
+	//TODO: Add TCP and RTU configuration validation
 	e := cfg.Modbus.Validate()
 	if e != nil {
 		return nil, fmt.Errorf("modbus: %v", e)

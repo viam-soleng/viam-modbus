@@ -10,14 +10,15 @@ import (
 	"go.viam.com/rdk/logging"
 )
 
-type ModbusTcpClientCloudConfig struct {
+type ModbusClientCloudConfig struct {
 	Url        string `json:"url"`
+	Speed      uint   `json:"speed"`
 	Timeout    int    `json:"timeout_ms"`
 	Endianness string `json:"endianness"`
 	WordOrder  string `json:"word_order"`
 }
 
-func (cfg *ModbusTcpClientCloudConfig) Validate() error {
+func (cfg *ModbusClientCloudConfig) Validate() error {
 	if cfg.Url == "" {
 		return errors.New("url is required")
 	}
@@ -33,10 +34,11 @@ func (cfg *ModbusTcpClientCloudConfig) Validate() error {
 	return nil
 }
 
-type ModbusTcpClient struct {
+type ModbusClient struct {
 	mu           sync.RWMutex
 	logger       logging.Logger
 	uri          string
+	speed        uint
 	timeout      time.Duration
 	endianness   modbus.Endianness
 	wordOrder    modbus.WordOrder
@@ -44,10 +46,11 @@ type ModbusTcpClient struct {
 }
 
 // TODO: Need to make it so reconfigure can update the settings here when stuck in a re-retry loop
-func NewModbusTcpClient(logger logging.Logger, uri string, timeout time.Duration, endianness modbus.Endianness, wordOrder modbus.WordOrder) (*ModbusTcpClient, error) {
-	client := &ModbusTcpClient{
+func NewModbusTcpClient(logger logging.Logger, uri string, timeout time.Duration, endianness modbus.Endianness, wordOrder modbus.WordOrder, speed uint) (*ModbusClient, error) {
+	client := &ModbusClient{
 		logger:     logger,
 		uri:        uri,
+		speed:      speed,
 		timeout:    timeout,
 		endianness: endianness,
 		wordOrder:  wordOrder,
@@ -59,19 +62,19 @@ func NewModbusTcpClient(logger logging.Logger, uri string, timeout time.Duration
 	return client, nil
 }
 
-func (r *ModbusTcpClient) Close() error {
+func (r *ModbusClient) Close() error {
 	if r.modbusClient != nil {
 		r.modbusClient.Close()
 	}
 	return nil
 }
 
-func (r *ModbusTcpClient) reinitializeModbusClient() error {
+func (r *ModbusClient) reinitializeModbusClient() error {
 	r.logger.Warnf("Re-initializing modbus client")
 	return r.initializeModbusClient()
 }
 
-func (r *ModbusTcpClient) initializeModbusClient() error {
+func (r *ModbusClient) initializeModbusClient() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -89,7 +92,7 @@ func (r *ModbusTcpClient) initializeModbusClient() error {
 
 	client, err := modbus.NewClient(&modbus.ClientConfiguration{
 		URL:     r.uri,
-		Speed:   115200,
+		Speed:   r.speed,
 		Timeout: r.timeout,
 	})
 	if err != nil {
@@ -106,7 +109,7 @@ func (r *ModbusTcpClient) initializeModbusClient() error {
 	return nil
 }
 
-func (r *ModbusTcpClient) ReadCoils(offset, length uint16) ([]bool, error) {
+func (r *ModbusClient) ReadCoils(offset, length uint16) ([]bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -124,7 +127,7 @@ func (r *ModbusTcpClient) ReadCoils(offset, length uint16) ([]bool, error) {
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadCoil(offset uint16) (bool, error) {
+func (r *ModbusClient) ReadCoil(offset uint16) (bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -142,7 +145,7 @@ func (r *ModbusTcpClient) ReadCoil(offset uint16) (bool, error) {
 	return false, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadDiscreteInputs(offset, length uint16) ([]bool, error) {
+func (r *ModbusClient) ReadDiscreteInputs(offset, length uint16) ([]bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -160,7 +163,7 @@ func (r *ModbusTcpClient) ReadDiscreteInputs(offset, length uint16) ([]bool, err
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadDiscreteInput(offset uint16) (bool, error) {
+func (r *ModbusClient) ReadDiscreteInput(offset uint16) (bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -178,7 +181,7 @@ func (r *ModbusTcpClient) ReadDiscreteInput(offset uint16) (bool, error) {
 	return false, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) WriteCoil(offset uint16, value bool) error {
+func (r *ModbusClient) WriteCoil(offset uint16, value bool) error {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -196,7 +199,7 @@ func (r *ModbusTcpClient) WriteCoil(offset uint16, value bool) error {
 	return ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadHoldingRegisters(offset, length uint16) ([]uint16, error) {
+func (r *ModbusClient) ReadHoldingRegisters(offset, length uint16) ([]uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -214,7 +217,7 @@ func (r *ModbusTcpClient) ReadHoldingRegisters(offset, length uint16) ([]uint16,
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadInputRegisters(offset, length uint16) ([]uint16, error) {
+func (r *ModbusClient) ReadInputRegisters(offset, length uint16) ([]uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -232,7 +235,7 @@ func (r *ModbusTcpClient) ReadInputRegisters(offset, length uint16) ([]uint16, e
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadInt32(offset uint16, regType modbus.RegType) (int32, error) {
+func (r *ModbusClient) ReadInt32(offset uint16, regType modbus.RegType) (int32, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -250,7 +253,7 @@ func (r *ModbusTcpClient) ReadInt32(offset uint16, regType modbus.RegType) (int3
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadUInt32(offset uint16, regType modbus.RegType) (uint32, error) {
+func (r *ModbusClient) ReadUInt32(offset uint16, regType modbus.RegType) (uint32, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -268,7 +271,7 @@ func (r *ModbusTcpClient) ReadUInt32(offset uint16, regType modbus.RegType) (uin
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadUInt64(offset uint16, regType modbus.RegType) (uint64, error) {
+func (r *ModbusClient) ReadUInt64(offset uint16, regType modbus.RegType) (uint64, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -286,7 +289,7 @@ func (r *ModbusTcpClient) ReadUInt64(offset uint16, regType modbus.RegType) (uin
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadFloat32(offset uint16, regType modbus.RegType) (float32, error) {
+func (r *ModbusClient) ReadFloat32(offset uint16, regType modbus.RegType) (float32, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -304,7 +307,7 @@ func (r *ModbusTcpClient) ReadFloat32(offset uint16, regType modbus.RegType) (fl
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadFloat64(offset uint16, regType modbus.RegType) (float64, error) {
+func (r *ModbusClient) ReadFloat64(offset uint16, regType modbus.RegType) (float64, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -322,7 +325,7 @@ func (r *ModbusTcpClient) ReadFloat64(offset uint16, regType modbus.RegType) (fl
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadUInt8(offset uint16, regType modbus.RegType) (uint8, error) {
+func (r *ModbusClient) ReadUInt8(offset uint16, regType modbus.RegType) (uint8, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -340,7 +343,7 @@ func (r *ModbusTcpClient) ReadUInt8(offset uint16, regType modbus.RegType) (uint
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadInt16(offset uint16, regType modbus.RegType) (int16, error) {
+func (r *ModbusClient) ReadInt16(offset uint16, regType modbus.RegType) (int16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -358,7 +361,7 @@ func (r *ModbusTcpClient) ReadInt16(offset uint16, regType modbus.RegType) (int1
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadUInt16(offset uint16, regType modbus.RegType) (uint16, error) {
+func (r *ModbusClient) ReadUInt16(offset uint16, regType modbus.RegType) (uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -376,7 +379,7 @@ func (r *ModbusTcpClient) ReadUInt16(offset uint16, regType modbus.RegType) (uin
 	return 0, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadBytes(offset, length uint16, regType modbus.RegType) ([]byte, error) {
+func (r *ModbusClient) ReadBytes(offset, length uint16, regType modbus.RegType) ([]byte, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -394,7 +397,7 @@ func (r *ModbusTcpClient) ReadBytes(offset, length uint16, regType modbus.RegTyp
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) ReadRawBytes(offset, length uint16, regType modbus.RegType) ([]byte, error) {
+func (r *ModbusClient) ReadRawBytes(offset, length uint16, regType modbus.RegType) ([]byte, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -412,37 +415,37 @@ func (r *ModbusTcpClient) ReadRawBytes(offset, length uint16, regType modbus.Reg
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ModbusTcpClient) WriteUInt16(offset uint16, value uint16) error {
+func (r *ModbusClient) WriteUInt16(offset uint16, value uint16) error {
 	return r.WriteWithRetry(func() error {
 		return r.modbusClient.WriteRegister(offset, value)
 	})
 }
 
-func (r *ModbusTcpClient) WriteUInt32(offset uint16, value uint32) error {
+func (r *ModbusClient) WriteUInt32(offset uint16, value uint32) error {
 	return r.WriteWithRetry(func() error {
 		return r.modbusClient.WriteUint32(offset, value)
 	})
 }
 
-func (r *ModbusTcpClient) WriteUInt64(offset uint16, value uint64) error {
+func (r *ModbusClient) WriteUInt64(offset uint16, value uint64) error {
 	return r.WriteWithRetry(func() error {
 		return r.modbusClient.WriteUint64(offset, value)
 	})
 }
 
-func (r *ModbusTcpClient) WriteFloat32(offset uint16, value float32) error {
+func (r *ModbusClient) WriteFloat32(offset uint16, value float32) error {
 	return r.WriteWithRetry(func() error {
 		return r.modbusClient.WriteFloat32(offset, value)
 	})
 }
 
-func (r *ModbusTcpClient) WriteFloat64(offset uint16, value float64) error {
+func (r *ModbusClient) WriteFloat64(offset uint16, value float64) error {
 	return r.WriteWithRetry(func() error {
 		return r.modbusClient.WriteFloat64(offset, value)
 	})
 }
 
-func (r *ModbusTcpClient) WriteWithRetry(w func() error) error {
+func (r *ModbusClient) WriteWithRetry(w func() error) error {
 	availableRetries := 3
 
 	for availableRetries > 0 {
