@@ -88,6 +88,17 @@ The modbus sensor component allows you to read and reord modbus register values.
 | `offset` | int | **Required** | Register address decimal|
 | `length` | int | **Required** | Number of words to include from register address|
 
+**Modbus Data Model / Register Types**
+
+|Register Type | Access | Size | Features |
+| ------- | ------ | ------------ | ----------- |
+|Coil (discrete output)	| Read-write | 1 bit | Read/Write on/off value |
+|Discrete input	| Read-only | 1 bit	| Read on/off value |
+|Input register	| Read-only	| 16 bits (0–65,535) | Read measurements and statuses |
+|Holding register |	Read-write | 16 bits (0–65,535) | Read/Write configuration values |
+
+[Modbus on Wikipedia](https://en.wikipedia.org/wiki/Modbus)
+
 ## Modbus Board Configuration
 
 Sample Configuration Attributes for a Board Component:
