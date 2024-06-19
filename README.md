@@ -55,7 +55,7 @@ Add this to your modbus board or sensor component to configure the modbus client
 | `word_order` | string | Optional     |       |
 | `endianness` | string | Optional     |       |
 | `timeout_ms` | string | Optional     | Connection timeout |
-| `speed` | string | **Required** for serial | Bit (bit/s). Required for serial connection |
+| `speed` | string | **Required** (for serial) | Bit (bit/s). Required for serial connection |
 
 
 ## Modbus Sensor Configuration
@@ -99,48 +99,8 @@ Sample Configuration Attributes for a Board Component:
       "name": "DI_01",
       "offset": 4
     },
-    {
-      "name": "DI_02",
-      "offset": 5,
-      "pin_type": "input"
-    },
-    {
-      "offset": 6,
-      "pin_type": "input",
-      "name": "DI_03"
-    },
-    {
-      "offset": 7,
-      "pin_type": "input",
-      "name": "DI_04"
-    },
-    {
-      "name": "DO_01",
-      "offset": 0,
-      "pin_type": "output"
-    },
-    {
-      "pin_type": "output",
-      "name": "DO_02",
-      "offset": 1
-    },
-    {
-      "name": "DO_03",
-      "offset": 2,
-      "pin_type": "output"
-    },
-    {
-      "offset": 3,
-      "pin_type": "output",
-      "name": "DO_04"
-    }
+    {...}
   ],
-  "modbus": {
-    "url": "tcp://192.168.1.124:502",
-    "word_order": "low",
-    "endianness": "big",
-    "timeout_ms": 10000
-  },
   "analog_pins": [
     {
       "pin_type": "input",
@@ -148,18 +108,22 @@ Sample Configuration Attributes for a Board Component:
       "name": "AI_01",
       "offset": 0
     },
-    {
-      "pin_type": "output",
-      "data_type": "uint16",
-      "name": "AO_01",
-      "offset": 0
-    }
-  ]
+    {...}
+  ],
+  "modbus": {...},
 }
 ```
 
+### Board Component Block Attributes
+
+|Path| Name    | Type   | Inclusion    | Description |
+| ------- | ------- | ------ | ------------ | ----------- |
+|`gpio_pins`\|`analog_pins`| `name` | string | **Required**| Name of the key for the value being read |
+|`gpio_pins`\|`analog_pins`| `pin_type` | string | **Required**| "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
+|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Number of words to include from register address|
+|`analog_pins`| `data_type` | string | **Required** | Decimal register address|
 
 
-TODO:
+## TODO:
   - modbus TCP
   - modbus RTU
