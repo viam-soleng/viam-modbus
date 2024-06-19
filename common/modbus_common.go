@@ -46,7 +46,7 @@ type ModbusClient struct {
 }
 
 // TODO: Need to make it so reconfigure can update the settings here when stuck in a re-retry loop
-func NewModbusTcpClient(logger logging.Logger, uri string, timeout time.Duration, endianness modbus.Endianness, wordOrder modbus.WordOrder, speed uint) (*ModbusClient, error) {
+func NewModbusClient(logger logging.Logger, uri string, timeout time.Duration, endianness modbus.Endianness, wordOrder modbus.WordOrder, speed uint) (*ModbusClient, error) {
 	client := &ModbusClient{
 		logger:     logger,
 		uri:        uri,

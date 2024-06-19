@@ -1,4 +1,4 @@
-package modbus_tcp_board
+package modbus_board
 
 import (
 	"context"
@@ -17,20 +17,21 @@ import (
 	"viam-modbus/utils"
 )
 
+// TODO: Change model from "modbus-tcp" to "modbus"
 var Model = resource.NewModel("viam-soleng", "board", "modbus-tcp")
 
 func init() {
 	resource.RegisterComponent(
 		board.API,
 		Model,
-		resource.Registration[board.Board, *ModbusTcpBoardCloudConfig]{
-			Constructor: NewModbusTcpBoard,
+		resource.Registration[board.Board, *ModbusBoardCloudConfig]{
+			Constructor: NewModbusBoard,
 		},
 	)
 }
 
-func NewModbusTcpBoard(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (board.Board, error) {
-	logger.Infof("Starting Modbus TCP Board Component %v", utils.Version)
+func NewModbusBoard(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (board.Board, error) {
+	logger.Infof("Starting Modbus Board Component %v", utils.Version)
 	c, cancelFunc := context.WithCancel(context.Background())
 	b := ModbusBoard{
 		Named:      conf.ResourceName().AsNamed(),
@@ -40,10 +41,10 @@ func NewModbusTcpBoard(ctx context.Context, deps resource.Dependencies, conf res
 	}
 
 	if err := b.Reconfigure(ctx, deps, conf); err != nil {
-		logger.Errorf("Failed to start Modbus TCP Board Component %v", err)
+		logger.Errorf("Failed to start Modbus Board Component %v", err)
 		return nil, err
 	}
-	logger.Info("Modbus TCP Board Component started successfully")
+	logger.Info("Modbus Board Component started successfully")
 	return &b, nil
 }
 
@@ -121,7 +122,7 @@ func (*ModbusBoard) StreamTicks(ctx context.Context, interrupts []board.DigitalI
 func (r *ModbusBoard) Close(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.logger.Info("Closing Modbus TCP Board Component")
+	r.logger.Info("Closing Modbus Board Component")
 	r.cancelFunc()
 	if r.client != nil {
 		err := r.client.Close()
@@ -141,9 +142,9 @@ func (*ModbusBoard) DoCommand(ctx context.Context, cmd map[string]interface{}) (
 func (r *ModbusBoard) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.logger.Debug("Parsing new configuration for Modbus TCP Board")
+	r.logger.Debug("Parsing new configuration for Modbus Board")
 
-	newConf, err := resource.NativeConfig[*ModbusTcpBoardCloudConfig](conf)
+	newConf, err := resource.NativeConfig[*ModbusBoardCloudConfig](conf)
 	if err != nil {
 		return err
 	}
@@ -154,8 +155,8 @@ func (r *ModbusBoard) Reconfigure(ctx context.Context, deps resource.Dependencie
 	return r.reconfigure(newConf, deps)
 }
 
-func (r *ModbusBoard) reconfigure(newConf *ModbusTcpBoardCloudConfig, deps resource.Dependencies) error {
-	r.logger.Infof("Reconfiguring Modbus TCP Board Component with %v", newConf)
+func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, deps resource.Dependencies) error {
+	r.logger.Infof("Reconfiguring Modbus Board Component with %v", newConf)
 	if r.client != nil {
 		err := r.client.Close()
 		if err != nil {
@@ -176,7 +177,7 @@ func (r *ModbusBoard) reconfigure(newConf *ModbusTcpBoardCloudConfig, deps resou
 	}
 
 	timeout := time.Millisecond * time.Duration(newConf.Modbus.Timeout)
-	client, err := common.NewModbusTcpClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder, newConf.Modbus.Speed)
+	client, err := common.NewModbusClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder, newConf.Modbus.Speed)
 	if err != nil {
 		r.logger.Errorf("Failed to initialize modbus client: %#v", err)
 		return err
@@ -205,6 +206,6 @@ func (r *ModbusBoard) reconfigure(newConf *ModbusTcpBoardCloudConfig, deps resou
 		r.analogPins[pinConf.Name] = pin
 	}
 	r.logger.Debug("Initialized Analog pins")
-	r.logger.Debug("Done initializing Modbus TCP Board")
+	r.logger.Debug("Done initializing Modbus Board")
 	return nil
 }

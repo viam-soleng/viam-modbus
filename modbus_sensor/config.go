@@ -1,4 +1,4 @@
-package modbus_tcp
+package modbus_sensor
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 	"viam-modbus/common"
 )
 
-type ModbusTcpConfig struct {
+type ModbusSensorConfig struct {
 	// use "tcp://host:port" format for TCP
 	// use "udp://device:port" format for UDP
 	Modbus *common.ModbusClientCloudConfig `json:"modbus"`
@@ -21,7 +21,7 @@ type ModbusBlocks struct {
 	Name   string `json:"name"`
 }
 
-func (cfg *ModbusTcpConfig) Validate(path string) ([]string, error) {
+func (cfg *ModbusSensorConfig) Validate(path string) ([]string, error) {
 	if cfg.Modbus == nil {
 		return nil, errors.New("modbus is required")
 	}

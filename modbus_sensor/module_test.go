@@ -1,4 +1,4 @@
-package modbus_tcp
+package modbus_sensor
 
 import (
 	"testing"

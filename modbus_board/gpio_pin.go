@@ -1,4 +1,4 @@
-package modbus_tcp_board
+package modbus_board
 
 import (
 	"context"

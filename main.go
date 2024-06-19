@@ -9,8 +9,8 @@ import (
 	"go.viam.com/rdk/module"
 	"go.viam.com/utils"
 
-	"viam-modbus/modbus_tcp"
-	"viam-modbus/modbus_tcp_board"
+	modbus_board "viam-modbus/modbus_board"
+	modbus_sensor "viam-modbus/modbus_sensor"
 	module_utils "viam-modbus/utils"
 )
 
@@ -24,12 +24,12 @@ func mainWithArgs(ctx context.Context, args []string, logger logging.Logger) (er
 		return err
 	}
 
-	err = custom_module.AddModelFromRegistry(ctx, sensor.API, modbus_tcp.Model)
+	err = custom_module.AddModelFromRegistry(ctx, sensor.API, modbus_sensor.Model)
 	if err != nil {
 		return err
 	}
 
-	err = custom_module.AddModelFromRegistry(ctx, board.API, modbus_tcp_board.Model)
+	err = custom_module.AddModelFromRegistry(ctx, board.API, modbus_board.Model)
 	if err != nil {
 		return err
 	}

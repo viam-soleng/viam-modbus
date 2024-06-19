@@ -1,4 +1,4 @@
-package modbus_tcp
+package modbus_sensor
 
 import (
 	"context"
@@ -18,22 +18,23 @@ import (
 	"viam-modbus/utils"
 )
 
+// TODO: change model from "modbus-tcp" to "modbus"
 var Model = resource.NewModel("viam-soleng", "sensor", "modbus-tcp")
 
 func init() {
 	resource.RegisterComponent(
 		sensor.API,
 		Model,
-		resource.Registration[sensor.Sensor, *ModbusTcpConfig]{
-			Constructor: NewModbusTcpSensor,
+		resource.Registration[sensor.Sensor, *ModbusSensorConfig]{
+			Constructor: NewModbusSensor,
 		},
 	)
 }
 
-func NewModbusTcpSensor(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (sensor.Sensor, error) {
-	logger.Infof("Starting Modbus TCP Sensor Component %v", utils.Version)
+func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (sensor.Sensor, error) {
+	logger.Infof("Starting Modbus Sensor Component %v", utils.Version)
 	c, cancelFunc := context.WithCancel(context.Background())
-	b := ModbusTcpSensor{
+	b := ModbusSensor{
 		Named:      conf.ResourceName().AsNamed(),
 		logger:     logger,
 		cancelFunc: cancelFunc,
@@ -46,7 +47,7 @@ func NewModbusTcpSensor(ctx context.Context, deps resource.Dependencies, conf re
 	return &b, nil
 }
 
-type ModbusTcpSensor struct {
+type ModbusSensor struct {
 	resource.Named
 	mu         sync.RWMutex
 	logger     logging.Logger
@@ -57,7 +58,7 @@ type ModbusTcpSensor struct {
 }
 
 // Readings implements sensor.Sensor.
-func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
+func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if r.client == nil {
@@ -170,10 +171,10 @@ func writeByteArrayToOutput(b []byte, block ModbusBlocks, results map[string]int
 }
 
 // Close implements resource.Resource.
-func (r *ModbusTcpSensor) Close(ctx context.Context) error {
+func (r *ModbusSensor) Close(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.logger.Info("Closing Modbus TCP Sensor Component")
+	r.logger.Info("Closing Modbus Sensor Component")
 	r.cancelFunc()
 	if r.client != nil {
 		err := r.client.Close()
@@ -185,17 +186,17 @@ func (r *ModbusTcpSensor) Close(ctx context.Context) error {
 }
 
 // DoCommand implements resource.Resource.
-func (*ModbusTcpSensor) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+func (*ModbusSensor) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{"ok": 1}, nil
 }
 
 // Reconfigure implements resource.Resource.
-func (r *ModbusTcpSensor) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
+func (r *ModbusSensor) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.logger.Debug("Reconfiguring Modbus TCP Sensor Component")
+	r.logger.Debug("Reconfiguring Modbus Sensor Component")
 
-	newConf, err := resource.NativeConfig[*ModbusTcpConfig](conf)
+	newConf, err := resource.NativeConfig[*ModbusSensorConfig](conf)
 	if err != nil {
 		return err
 	}
@@ -206,8 +207,8 @@ func (r *ModbusTcpSensor) Reconfigure(ctx context.Context, deps resource.Depende
 	return r.reconfigure(newConf, deps)
 }
 
-func (r *ModbusTcpSensor) reconfigure(newConf *ModbusTcpConfig, deps resource.Dependencies) error {
-	r.logger.Infof("Reconfiguring Modbus TCP Sensor Component with %v", newConf)
+func (r *ModbusSensor) reconfigure(newConf *ModbusSensorConfig, deps resource.Dependencies) error {
+	r.logger.Infof("Reconfiguring Modbus Sensor Component with %v", newConf)
 	if r.client != nil {
 		err := r.client.Close()
 		if err != nil {
@@ -227,7 +228,7 @@ func (r *ModbusTcpSensor) reconfigure(newConf *ModbusTcpConfig, deps resource.De
 	}
 
 	timeout := time.Millisecond * time.Duration(newConf.Modbus.Timeout)
-	client, err := common.NewModbusTcpClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder, newConf.Modbus.Speed)
+	client, err := common.NewModbusClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder, newConf.Modbus.Speed)
 	if err != nil {
 		return err
 	}
