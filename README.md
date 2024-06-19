@@ -6,14 +6,14 @@ Available via the [Viam Registry](https://app.viam.com/module/viam-soleng/viam-m
 
 ## Description
 
-The Modbus TCP module enables seamless communication between devices by acting as a client that queries data from a Modbus server, facilitating real-time monitoring and control over networked industrial equipment. It allows for reading and writing of coils or registers on the server, enabling efficient data exchange and operational command execution. This module is essential for integrating diverse devices, ensuring interoperability and enhancing automation in industrial environments.
+The Viam Modbus module enables seamless communication between devices by acting as a client that queries data from a Modbus server, facilitating real-time monitoring and control over connected industrial equipment. It allows for reading and writing of coils or registers on the server, enabling efficient data exchange and operational command execution. This module is essential for integrating diverse devices, ensuring interoperability and enhancing automation in industrial environments.
 
 ![alt text](media/architecture.png "Modbus Integration (Server / Client) Architecture")
 
 ## Features
 
-- **Data Acquisition:** Enables the reading of sensor data from a Modbus Server using a TCP connection.
-- **Device Control:** Enables the reading of writing of coils and registers onto a Modbus Server using a TCP connection.
+- **Data Acquisition:** Enables the reading of sensor data from a Modbus Server.
+- **Device Control:** Enables the reading of writing of coils and registers onto a Modbus Server.
 - **Configurable Parameters:** Offers customization options for the device address, word_order, endianness, timeouts, pin types, data types and more.
 
 
@@ -28,7 +28,7 @@ There are two configuration areas. The `modbus`config path applies to both, the 
 
 ```json
   "modbus": {
-    "url": "tcp://10.1.12.124:502",
+    "url": "tcp://192.168.1.124:502",
     "word_order": "low",
     "endianness": "big",
     "timeout_ms": 10000
@@ -60,7 +60,10 @@ Add this to your modbus board or sensor component to configure the modbus client
 
 ## Modbus Sensor Configuration
 
-Sample Configuration Attributes for a Sensor Component:
+The modbus sensor component allows you to read and reord modbus register values.
+
+### Sensor Component Configuration Example
+
 ```json
 {
   "blocks": [
@@ -70,33 +73,20 @@ Sample Configuration Attributes for a Sensor Component:
       "offset": 0,
       "type": "input_registers"
     },
-    {
-      "length": 4,
-      "name": "switches_buttons",
-      "offset": 4,
-      "type": "discrete_inputs"
-    },
-    {
-      "length": 4,
-      "name": "lights",
-      "offset": 0,
-      "type": "coils"
-    },
-    {
-      "offset": 0,
-      "type": "holding_registers",
-      "length": 1,
-      "name": "voltageDial"
-    }
+    {...}
   ],
-  "modbus": {
-    "timeout_ms": 10000,
-    "url": "tcp://10.1.12.124:502",
-    "word_order": "low",
-    "endianness": "big"
-  }
+  "modbus": {...}
 }
 ```
+
+### Sensor Component Block Attributes
+
+| Name    | Type   | Inclusion    | Description |
+| ------- | ------ | ------------ | ----------- |
+| `name` | string | **Required**|       |
+| `type` | string | **Required**|  |
+| `offset` | int | **Required** |       |
+| `length` | int | **Required** | |
 
 ## Modbus Board Configuration
 
@@ -146,7 +136,7 @@ Sample Configuration Attributes for a Board Component:
     }
   ],
   "modbus": {
-    "url": "tcp://10.1.12.124:502",
+    "url": "tcp://192.168.1.124:502",
     "word_order": "low",
     "endianness": "big",
     "timeout_ms": 10000
