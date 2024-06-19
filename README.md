@@ -17,8 +17,44 @@ The Modbus TCP module enables seamless communication between devices by acting a
 - **Configurable Parameters:** Offers customization options for the device address, word_order, endianness, timeouts, pin types, data types and more.
 
 
-## Configuration and Dependencies
 
+## Modbus Client Configuration
+
+The Viam modbus client module supports connections over tcp and serial. Which mode is used, depends on the `modbus.url` prefix as explained below.
+
+### TCP Client
+
+```json
+  "modbus": {
+    "url": "tcp://10.1.12.124:502",
+    "word_order": "low",
+    "endianness": "big",
+    "timeout_ms": 10000
+  }
+```
+
+### Serial / RTU Client
+
+Add this to your modbus board or sensor component to configure the modbus client to use serial communication.
+
+```json
+  "modbus": {
+    "url": "rtu:///dev/ttyACM0",  // path to your serial device
+    "speed": 115200,              // 
+    "timeout_ms": 10000
+  }
+```
+
+| Name    | Type   | Inclusion    | Description |
+| ------- | ------ | ------------ | ----------- |
+| `url` | string | **Required** | tcp config: "tcp://<ip address>:port" / serial config: "rtu://<serial device>|
+| `word_order` | string | Optional     | TODO        |
+| `endianness` | string | Optional     | TODO        |
+| `timeout_ms` | string | Optional     | TODO        |
+| `speed` | string | **Required** | Only required for serial connection |
+
+
+## Configuration and Dependencies
 
 Sample Configuration Attributes for a Board Component:
 ```json
@@ -126,18 +162,6 @@ Sample Configuration Attributes for a Sensor Component:
 }
 ```
 
-
-## Serial / RTU Client Configuration
-
-Add this to your modbus board or sensor component to configure the modbus client to use serial communication.
-
-```json
-  "modbus": {
-    "url": "rtu:///dev/ttyACM0",
-    "speed": 115200,
-    "timeout_ms": 10000
-  }
-```
 
 TODO:
   - modbus TCP
