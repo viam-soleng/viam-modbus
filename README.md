@@ -24,7 +24,7 @@ The Viam modbus client module supports connections over tcp and serial. Which mo
 As with any other Viam module you can apply the configuration to your component into the `Configure` section.
 There are two configuration areas. The `modbus`config path applies to both, the sensor and the board component.
 
-### Example TCP Client
+### TCP Client Example
 
 ```json
   "modbus": {
@@ -35,7 +35,7 @@ There are two configuration areas. The `modbus`config path applies to both, the 
   }
 ```
 
-### Example Serial / RTU Client
+### Serial / RTU Client Example
 
 Add this to your modbus board or sensor component to configure the modbus client to use serial communication.
 
