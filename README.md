@@ -121,7 +121,7 @@ Sample Configuration Attributes for a Board Component:
 |`gpio_pins`\|`analog_pins`| `name` | string | **Required**| Name of the pin |
 |`gpio_pins`\|`analog_pins`| `pin_type` | string | **Required**| "input" \| "output" |
 |`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Decimal register address|
-|`analog_pins`| `data_type` | string | **Required** | "uint16" |
+|`analog_pins`| `data_type` | string | **Required** | "uint8" \| "uint16" \| "uint32" \| "uint64" \| "float32" \| "float64" |
 
 ## TODO:
   - Authentication
