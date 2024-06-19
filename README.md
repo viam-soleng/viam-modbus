@@ -58,7 +58,47 @@ Add this to your modbus board or sensor component to configure the modbus client
 | `speed` | string | **Required for serial** | Bit (bit/s). Required for serial connection |
 
 
-## Configuration and Dependencies
+## Modbus Sensor Configuration
+
+Sample Configuration Attributes for a Sensor Component:
+```json
+{
+  "blocks": [
+    {
+      "length": 1,
+      "name": "potentiometer",
+      "offset": 0,
+      "type": "input_registers"
+    },
+    {
+      "length": 4,
+      "name": "switches_buttons",
+      "offset": 4,
+      "type": "discrete_inputs"
+    },
+    {
+      "length": 4,
+      "name": "lights",
+      "offset": 0,
+      "type": "coils"
+    },
+    {
+      "offset": 0,
+      "type": "holding_registers",
+      "length": 1,
+      "name": "voltageDial"
+    }
+  ],
+  "modbus": {
+    "timeout_ms": 10000,
+    "url": "tcp://10.1.12.124:502",
+    "word_order": "low",
+    "endianness": "big"
+  }
+}
+```
+
+## Modbus Board Configuration
 
 Sample Configuration Attributes for a Board Component:
 ```json
@@ -128,43 +168,6 @@ Sample Configuration Attributes for a Board Component:
 }
 ```
 
-Sample Configuration Attributes for a Sensor Component:
-```json
-{
-  "blocks": [
-    {
-      "length": 1,
-      "name": "potentiometer",
-      "offset": 0,
-      "type": "input_registers"
-    },
-    {
-      "length": 4,
-      "name": "switches_buttons",
-      "offset": 4,
-      "type": "discrete_inputs"
-    },
-    {
-      "length": 4,
-      "name": "lights",
-      "offset": 0,
-      "type": "coils"
-    },
-    {
-      "offset": 0,
-      "type": "holding_registers",
-      "length": 1,
-      "name": "voltageDial"
-    }
-  ],
-  "modbus": {
-    "timeout_ms": 10000,
-    "url": "tcp://10.1.12.124:502",
-    "word_order": "low",
-    "endianness": "big"
-  }
-}
-```
 
 
 TODO:
