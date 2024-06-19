@@ -85,7 +85,7 @@ The modbus sensor component allows you to read and reord modbus register values.
 | ------- | ------ | ------------ | ----------- |
 | `name` | string | **Required**| Name of the key for the value being read |
 | `type` | string | **Required**| "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
-| `offset` | int | **Required** | Decimal register address|
+| `offset` | int | **Required** | Register address decimal|
 | `length` | int | **Required** | Number of words to include from register address|
 
 ## Modbus Board Configuration
@@ -120,7 +120,7 @@ Sample Configuration Attributes for a Board Component:
 | ------- | ------- | ------ | ------------ | ----------- |
 |`gpio_pins`\|`analog_pins`| `name` | string | **Required**| Name of the pin |
 |`gpio_pins`\|`analog_pins`| `pin_type` | string | **Required**| "input" \| "output" |
-|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Decimal register address|
+|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Register address decimal|
 |`analog_pins`| `data_type` | string | **Required** | "uint8" \| "uint16" \| "uint32" \| "uint64" \| "float32" \| "float64" |
 
 ## TODO:
