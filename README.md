@@ -41,7 +41,7 @@ Add this to your modbus board or sensor component to configure the modbus client
 
 ```json
   "modbus": {
-    "url": "rtu:///dev/ttyACM0",
+    "url": "rtu:///dev/tty...",
     "speed": 115200,
     "timeout_ms": 10000
   }
@@ -51,11 +51,11 @@ Add this to your modbus board or sensor component to configure the modbus client
 
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
-| `url` | string | **Required** | tcp config: "tcp://<ip address>:port" / serial config: "rtu://<serial device>|
-| `word_order` | string | Optional     | TODO        |
-| `endianness` | string | Optional     | TODO        |
-| `timeout_ms` | string | Optional     | TODO        |
-| `speed` | string | **Required** | Only required for serial connection |
+| `url` | string | **Required** | TCP Config: `"tcp://<ip address>:port"`<br>Serial Config: `"rtu://<serial device path>"`|
+| `word_order` | string | Optional     |       |
+| `endianness` | string | Optional     |       |
+| `timeout_ms` | string | Optional     | Connection timeout |
+| `speed` | string | **Required for serial** | Bit (bit/s). Required for serial connection |
 
 
 ## Configuration and Dependencies
