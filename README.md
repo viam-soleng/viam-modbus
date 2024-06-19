@@ -55,7 +55,7 @@ Add this to your modbus board or sensor component to configure the modbus client
 | `word_order` | string | Optional     |       |
 | `endianness` | string | Optional     |       |
 | `timeout_ms` | string | Optional     | Connection timeout |
-| `speed` | string | **Required for serial** | Bit (bit/s). Required for serial connection |
+| `speed` | string | **Required** for serial | Bit (bit/s). Required for serial connection |
 
 
 ## Modbus Sensor Configuration
