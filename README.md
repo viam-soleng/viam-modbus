@@ -1,4 +1,4 @@
-# Viam Modbus Integration Module
+# Viam Modbus Client Module
 
 This repository contains the `board` and `sensor` package, these modules abstract away a modbus server as a board component, and can query the state of that server and return sensor readings.
 
