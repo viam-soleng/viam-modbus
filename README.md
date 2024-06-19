@@ -118,11 +118,10 @@ Sample Configuration Attributes for a Board Component:
 
 |Path| Name    | Type   | Inclusion    | Description |
 | ------- | ------- | ------ | ------------ | ----------- |
-|`gpio_pins`\|`analog_pins`| `name` | string | **Required**| Name of the key for the value being read |
-|`gpio_pins`\|`analog_pins`| `pin_type` | string | **Required**| "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
-|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Number of words to include from register address|
-|`analog_pins`| `data_type` | string | **Required** | Decimal register address|
-
+|`gpio_pins`\|`analog_pins`| `name` | string | **Required**| Name of the pin |
+|`gpio_pins`\|`analog_pins`| `pin_type` | string | **Required**| "input" \| "output" |
+|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Decimal register address|
+|`analog_pins`| `data_type` | string | **Required** | "uint16" |
 
 ## TODO:
   - Authentication
