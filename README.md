@@ -83,10 +83,10 @@ The modbus sensor component allows you to read and reord modbus register values.
 
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
-| `name` | string | **Required**|       |
-| `type` | string | **Required**|  |
-| `offset` | int | **Required** |       |
-| `length` | int | **Required** | |
+| `name` | string | **Required**| Name of the key for the value being read |
+| `type` | string | **Required**| "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
+| `offset` | int | **Required** | Decimal register address|
+| `length` | int | **Required** | Number of words to include from register address|
 
 ## Modbus Board Configuration
 
