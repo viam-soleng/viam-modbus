@@ -136,3 +136,6 @@ Sample Configuration Attributes for a Board Component:
 
 ## TODO:
   - Authentication
+
+## Credits
+- Simon Vetter [Go Modbus Library](https://github.com/simonvetter/modbus)
