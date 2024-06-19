@@ -1,6 +1,6 @@
 # Viam Modbus Client Module
 
-This repository contains the `board` and `sensor` package, these modules abstract away a modbus server as a board component, and can query the state of that server and return sensor readings.
+This repository contains the `board`(r/w) and `sensor`(r) package, these modules abstract away a modbus server as a board component, and can query the state of that server and return sensor readings.
 
 Available via the [Viam Registry](https://app.viam.com/module/viam-soleng/viam-modbus)! -> Currently for linux/arm64 others will follow soon.
 
