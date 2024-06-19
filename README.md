@@ -125,5 +125,4 @@ Sample Configuration Attributes for a Board Component:
 
 
 ## TODO:
-  - modbus TCP
-  - modbus RTU
+  - Authentication
