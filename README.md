@@ -40,10 +40,6 @@ There are two configuration areas. The `modbus`config path applies to both, the 
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
 | `url` | string | **Required** | TCP Config: `"tcp://<ip address>:port"`<br>Serial Config: `"rtu://<serial device path>"`|
-| `speed` | string | **Required** (for serial) | Bit (bit/s). Required for serial connection |
-| `data_bits` | uint | Optional |  |
-| `parity` | uint | Optional |  |
-| `stop_bits` | uint | Optional |  |
 | `timeout_ms` | string | Optional     | Connection timeout |
 | `endianness` | string | Optional     |       |
 | `word_order` | string | Optional     |       |
@@ -67,15 +63,13 @@ Add this to your modbus board or sensor component to configure the modbus client
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
 | `url` | string | **Required** | TCP Config: `"tcp://<ip address>:port"`<br>Serial Config: `"rtu://<serial device path>"`|
-| `speed` | string | **Required** (for serial) | Bit (bit/s). Required for serial connection |
+| `speed` | string | **Required** | Bit (bit/s). Required for serial connection |
 | `data_bits` | uint | Optional |  |
 | `parity` | uint | Optional |  |
 | `stop_bits` | uint | Optional |  |
 | `timeout_ms` | string | Optional     | Connection timeout |
 | `endianness` | string | Optional     |       |
 | `word_order` | string | Optional     |       |
-| `tls_client_cert` | string | Optional     |   Not implemented yet    |
-| `tls_root_cas` | string | Optional     |   Not implemented yet    |
 
 ## Modbus Sensor Configuration
 
