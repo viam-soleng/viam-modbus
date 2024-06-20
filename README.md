@@ -59,6 +59,8 @@ Add this to your modbus board or sensor component to configure the modbus client
 | `timeout_ms` | string | Optional     | Connection timeout |
 | `endianness` | string | Optional     |       |
 | `word_order` | string | Optional     |       |
+| `tls_client_cert` | string | Optional     |   Not implemented yet    |
+| `tls_root_cas` | string | Optional     |   Not implemented yet    |
 
 ## Modbus Sensor Configuration
 
