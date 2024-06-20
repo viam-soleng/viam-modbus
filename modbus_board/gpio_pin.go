@@ -1,4 +1,4 @@
-package modbus_tcp_board
+package modbus_board
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 type ModbusGpioPin struct {
 	mu      *sync.RWMutex
 	offset  uint16
-	board   *ModbusTcpBoard
+	board   *ModbusBoard
 	pinType common.PinType
 }
 
@@ -56,7 +56,7 @@ func (*ModbusGpioPin) SetPWMFreq(ctx context.Context, freqHz uint, extra map[str
 	return errors.ErrUnsupported
 }
 
-func NewModbusGpioPin(board *ModbusTcpBoard, offset uint16, pinType common.PinType) *ModbusGpioPin {
+func NewModbusGpioPin(board *ModbusBoard, offset uint16, pinType common.PinType) *ModbusGpioPin {
 	return &ModbusGpioPin{
 		mu:      &board.mu,
 		offset:  offset,

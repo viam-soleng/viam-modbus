@@ -1,4 +1,4 @@
-package modbus_tcp_board
+package modbus_board
 
 import (
 	"errors"
@@ -7,12 +7,10 @@ import (
 	"viam-modbus/common"
 )
 
-type ModbusTcpBoardCloudConfig struct {
-	// use "tcp://host:port" format for TCP
-	// use "udp://device:port" format for UDP
-	Modbus     *common.ModbusTcpClientCloudConfig `json:"modbus"`
-	GpioPins   []ModbusGpioPinCloudConfig         `json:"gpio_pins"`
-	AnalogPins []ModbusAnalogPinCloudConfig       `json:"analog_pins"`
+type ModbusBoardCloudConfig struct {
+	Modbus     *common.ModbusClientConfig   `json:"modbus"`
+	GpioPins   []ModbusGpioPinCloudConfig   `json:"gpio_pins"`
+	AnalogPins []ModbusAnalogPinCloudConfig `json:"analog_pins"`
 }
 
 type ModbusGpioPinCloudConfig struct {
@@ -28,7 +26,7 @@ type ModbusAnalogPinCloudConfig struct {
 	DataType string `json:"data_type"`
 }
 
-func (cfg *ModbusTcpBoardCloudConfig) Validate(path string) ([]string, error) {
+func (cfg *ModbusBoardCloudConfig) Validate(path string) ([]string, error) {
 	if cfg.Modbus == nil {
 		return nil, errors.New("modbus is required")
 	}
