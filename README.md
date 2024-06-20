@@ -63,7 +63,7 @@ Add this to your modbus board or sensor component to configure the modbus client
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
 | `url` | string | **Required** | Serial Config: `"rtu://<serial device path>"`|
-| `speed` | string | **Required** | Bit (bit/s). Required for serial connection |
+| `speed` | string | **Required** | Bit (bit/s) |
 | `data_bits` | uint | Optional |  |
 | `parity` | uint | Optional |  |
 | `stop_bits` | uint | Optional |  |
