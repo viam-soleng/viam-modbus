@@ -52,11 +52,13 @@ Add this to your modbus board or sensor component to configure the modbus client
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
 | `url` | string | **Required** | TCP Config: `"tcp://<ip address>:port"`<br>Serial Config: `"rtu://<serial device path>"`|
-| `word_order` | string | Optional     |       |
-| `endianness` | string | Optional     |       |
-| `timeout_ms` | string | Optional     | Connection timeout |
 | `speed` | string | **Required** (for serial) | Bit (bit/s). Required for serial connection |
-
+| `data_bits` | uint | Optional |  |
+| `parity` | uint | Optional |  |
+| `stop_bits` | uint | Optional |  |
+| `timeout_ms` | string | Optional     | Connection timeout |
+| `endianness` | string | Optional     |       |
+| `word_order` | string | Optional     |       |
 
 ## Modbus Sensor Configuration
 
