@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/simonvetter/modbus"
 	pb "go.viam.com/api/component/board/v1"
 	"go.viam.com/rdk/components/board"
 	"go.viam.com/rdk/logging"
@@ -50,7 +51,7 @@ func NewModbusBoard(ctx context.Context, deps resource.Dependencies, conf resour
 
 type ModbusBoard struct {
 	resource.Named
-	client     *common.ModbusClient
+	client     *common.ViamModbusClient
 	mu         sync.RWMutex
 	logger     logging.Logger
 	cancelFunc context.CancelFunc
@@ -155,7 +156,7 @@ func (r *ModbusBoard) Reconfigure(ctx context.Context, deps resource.Dependencie
 	return r.reconfigure(newConf, deps)
 }
 
-func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, deps resource.Dependencies) error {
+func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, _ resource.Dependencies) error {
 	r.logger.Infof("Reconfiguring Modbus Board Component with %v", newConf)
 	if r.client != nil {
 		err := r.client.Close()
@@ -177,7 +178,19 @@ func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, deps resource
 	}
 
 	timeout := time.Millisecond * time.Duration(newConf.Modbus.Timeout)
-	client, err := common.NewModbusClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder, newConf.Modbus.Speed)
+
+	clientConfig := modbus.ClientConfiguration{
+		URL:      newConf.Modbus.URL,
+		Speed:    newConf.Modbus.Speed,
+		DataBits: newConf.Modbus.DataBits,
+		Parity:   newConf.Modbus.Parity,
+		StopBits: newConf.Modbus.StopBits,
+		Timeout:  timeout,
+		// TODO: To be implemented
+		//TLSClientCert: tlsClientCert,
+		//TLSRootCAs:    tlsRootCAs,
+	}
+	client, err := common.NewModbusClient(r.logger, endianness, wordOrder, clientConfig)
 	if err != nil {
 		r.logger.Errorf("Failed to initialize modbus client: %#v", err)
 		return err

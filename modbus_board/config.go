@@ -8,11 +8,9 @@ import (
 )
 
 type ModbusBoardCloudConfig struct {
-	// use "tcp://host:port" format for TCP
-	// use "udp://device:port" format for UDP
-	Modbus     *common.ModbusClientCloudConfig `json:"modbus"`
-	GpioPins   []ModbusGpioPinCloudConfig      `json:"gpio_pins"`
-	AnalogPins []ModbusAnalogPinCloudConfig    `json:"analog_pins"`
+	Modbus     *common.ModbusClientConfig   `json:"modbus"`
+	GpioPins   []ModbusGpioPinCloudConfig   `json:"gpio_pins"`
+	AnalogPins []ModbusAnalogPinCloudConfig `json:"analog_pins"`
 }
 
 type ModbusGpioPinCloudConfig struct {

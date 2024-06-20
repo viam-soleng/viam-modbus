@@ -21,6 +21,7 @@ import (
 // TODO: change model from "modbus-tcp" to "modbus"
 var Model = resource.NewModel("viam-soleng", "sensor", "modbus-tcp")
 
+// Registers the sensor model
 func init() {
 	resource.RegisterComponent(
 		sensor.API,
@@ -31,6 +32,7 @@ func init() {
 	)
 }
 
+// Creates a new modbus sensor instance
 func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (sensor.Sensor, error) {
 	logger.Infof("Starting Modbus Sensor Component %v", utils.Version)
 	c, cancelFunc := context.WithCancel(context.Background())
@@ -53,11 +55,11 @@ type ModbusSensor struct {
 	logger     logging.Logger
 	cancelFunc context.CancelFunc
 	ctx        context.Context
-	client     *common.ModbusClient
+	client     *common.ViamModbusClient
 	blocks     []ModbusBlocks
 }
 
-// Readings implements sensor.Sensor.
+// Returns modbus register values
 func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -170,7 +172,7 @@ func writeByteArrayToOutput(b []byte, block ModbusBlocks, results map[string]int
 	results[block.Name] = hex.EncodeToString(b)
 }
 
-// Close implements resource.Resource.
+// Closes the modbus sensor instance
 func (r *ModbusSensor) Close(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -185,12 +187,12 @@ func (r *ModbusSensor) Close(ctx context.Context) error {
 	return nil
 }
 
-// DoCommand implements resource.Resource.
+// DoCommand currently not implemented
 func (*ModbusSensor) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{"ok": 1}, nil
 }
 
-// Reconfigure implements resource.Resource.
+// Configures the modbus sensor instance
 func (r *ModbusSensor) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -207,7 +209,7 @@ func (r *ModbusSensor) Reconfigure(ctx context.Context, deps resource.Dependenci
 	return r.reconfigure(newConf, deps)
 }
 
-func (r *ModbusSensor) reconfigure(newConf *ModbusSensorConfig, deps resource.Dependencies) error {
+func (r *ModbusSensor) reconfigure(newConf *ModbusSensorConfig, _ resource.Dependencies) error {
 	r.logger.Infof("Reconfiguring Modbus Sensor Component with %v", newConf)
 	if r.client != nil {
 		err := r.client.Close()
@@ -228,7 +230,19 @@ func (r *ModbusSensor) reconfigure(newConf *ModbusSensorConfig, deps resource.De
 	}
 
 	timeout := time.Millisecond * time.Duration(newConf.Modbus.Timeout)
-	client, err := common.NewModbusClient(r.logger, newConf.Modbus.Url, timeout, endianness, wordOrder, newConf.Modbus.Speed)
+
+	clientConfig := modbus.ClientConfiguration{
+		URL:      newConf.Modbus.URL,
+		Speed:    newConf.Modbus.Speed,
+		DataBits: newConf.Modbus.DataBits,
+		Parity:   newConf.Modbus.Parity,
+		StopBits: newConf.Modbus.StopBits,
+		Timeout:  timeout,
+		// TODO: To be implemented
+		//TLSClientCert: tlsClientCert,
+		//TLSRootCAs:    tlsRootCAs,
+	}
+	client, err := common.NewModbusClient(r.logger, endianness, wordOrder, clientConfig)
 	if err != nil {
 		return err
 	}

@@ -8,10 +8,8 @@ import (
 )
 
 type ModbusSensorConfig struct {
-	// use "tcp://host:port" format for TCP
-	// use "udp://device:port" format for UDP
-	Modbus *common.ModbusClientCloudConfig `json:"modbus"`
-	Blocks []ModbusBlocks                  `json:"blocks"`
+	Modbus *common.ModbusClientConfig `json:"modbus"`
+	Blocks []ModbusBlocks             `json:"blocks"`
 }
 
 type ModbusBlocks struct {
