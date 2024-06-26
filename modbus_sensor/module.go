@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -51,12 +52,13 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 
 type ModbusSensor struct {
 	resource.Named
-	mu         sync.RWMutex
-	logger     logging.Logger
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	client     *common.ViamModbusClient
-	blocks     []ModbusBlocks
+	mu               sync.RWMutex
+	logger           logging.Logger
+	cancelFunc       context.CancelFunc
+	ctx              context.Context
+	client           *common.ViamModbusClient
+	blocks           []ModbusBlocks
+	holdingRegisters []ModbusBlocks
 }
 
 // Returns modbus register values
@@ -67,90 +69,108 @@ func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 		return nil, errors.New("modbus client not initialized")
 	}
 	results := map[string]interface{}{}
-	for _, block := range r.blocks {
-		switch block.Type {
-		case "coils":
-			b, err := r.client.ReadCoils(uint16(block.Offset), uint16(block.Length))
-			if err != nil {
-				return nil, err
-			}
-			writeBoolArrayToOutput(b, block, results)
-		case "discrete_inputs":
-			b, err := r.client.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length))
-			if err != nil {
-				return nil, err
-			}
-			writeBoolArrayToOutput(b, block, results)
-		case "holding_registers":
-			b, err := r.client.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length))
-			if err != nil {
-				return nil, err
-			}
-			writeUInt16ArrayToOutput(b, block, results)
-		case "input_registers":
-			b, err := r.client.ReadInputRegisters(uint16(block.Offset), uint16(block.Length))
-			if err != nil {
-				return nil, err
-			}
-			writeUInt16ArrayToOutput(b, block, results)
-		case "bytes":
-			b, e := r.client.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			writeByteArrayToOutput(b, block, results)
-		case "rawBytes":
-			b, e := r.client.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			writeByteArrayToOutput(b, block, results)
-		case "uint8":
-			b, e := r.client.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			results[block.Name] = int32(b)
-		case "int16":
-			b, e := r.client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			results[block.Name] = int32(b)
-		case "uint16":
-			b, e := r.client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			results[block.Name] = int32(b)
-		case "int32":
-			b, e := r.client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			results[block.Name] = b
-		case "uint32":
-			b, e := r.client.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			results[block.Name] = b
-		case "float32":
-			b, e := r.client.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			results[block.Name] = b
-		case "float64":
-			b, e := r.client.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER)
-			if e != nil {
-				return nil, e
-			}
-			results[block.Name] = b
-		default:
-			results[block.Name] = "unsupported type"
-		}
+
+	// Extract address range from holding registers
+	start := r.holdingRegisters[0].Offset
+	end := r.holdingRegisters[len(r.holdingRegisters)-1].Offset + r.holdingRegisters[len(r.holdingRegisters)-1].Length
+
+	b, err := r.client.ReadHoldingRegisters(uint16(start), uint16(end))
+	if err != nil {
+		return nil, err
 	}
+
+	// Map holding register names to values
+	for _, block := range r.holdingRegisters {
+		value := b[block.Offset:block.Length]
+		results[block.Name] = strconv.Itoa(int(value[0]))
+	}
+
+	/*
+		for _, block := range r.blocks {
+			switch block.Type {
+			case "coils":
+				b, err := r.client.ReadCoils(uint16(block.Offset), uint16(block.Length))
+				if err != nil {
+					return nil, err
+				}
+				writeBoolArrayToOutput(b, block, results)
+			case "discrete_inputs":
+				b, err := r.client.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length))
+				if err != nil {
+					return nil, err
+				}
+				writeBoolArrayToOutput(b, block, results)
+			case "holding_registers":
+				b, err := r.client.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length))
+				if err != nil {
+					return nil, err
+				}
+				writeUInt16ArrayToOutput(b, block, results)
+			case "input_registers":
+				b, err := r.client.ReadInputRegisters(uint16(block.Offset), uint16(block.Length))
+				if err != nil {
+					return nil, err
+				}
+				writeUInt16ArrayToOutput(b, block, results)
+			case "bytes":
+				b, e := r.client.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				writeByteArrayToOutput(b, block, results)
+			case "rawBytes":
+				b, e := r.client.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				writeByteArrayToOutput(b, block, results)
+			case "uint8":
+				b, e := r.client.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				results[block.Name] = int32(b)
+			case "int16":
+				b, e := r.client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				results[block.Name] = int32(b)
+			case "uint16":
+				b, e := r.client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				results[block.Name] = int32(b)
+			case "int32":
+				b, e := r.client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				results[block.Name] = b
+			case "uint32":
+				b, e := r.client.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				results[block.Name] = b
+			case "float32":
+				b, e := r.client.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				results[block.Name] = b
+			case "float64":
+				b, e := r.client.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER)
+				if e != nil {
+					return nil, e
+				}
+				results[block.Name] = b
+			default:
+				results[block.Name] = "unsupported type"
+			}
+		}
+	*/
 	return results, nil
 }
 
@@ -205,6 +225,19 @@ func (r *ModbusSensor) Reconfigure(ctx context.Context, deps resource.Dependenci
 
 	// In case the module has changed name
 	r.Named = conf.ResourceName().AsNamed()
+
+	// Extract holding registers from configured blocks
+	for _, block := range newConf.Blocks {
+		if block.Type == "holding_registers" {
+			r.holdingRegisters = append(r.holdingRegisters, block)
+		}
+	}
+
+	// Sort holding registers by offset
+	sort.Slice(r.holdingRegisters, func(i, j int) bool {
+		return r.holdingRegisters[i].Offset < r.holdingRegisters[j].Offset
+	})
+	r.logger.Infof("Holding Registers: %v", r.holdingRegisters)
 
 	return r.reconfigure(newConf, deps)
 }
