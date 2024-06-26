@@ -71,18 +71,19 @@ func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 	results := map[string]interface{}{}
 
 	// Extract address range from holding registers
-	start := r.holdingRegisters[0].Offset
-	end := r.holdingRegisters[len(r.holdingRegisters)-1].Offset + r.holdingRegisters[len(r.holdingRegisters)-1].Length
+	offset := r.holdingRegisters[0].Offset
+	length := (r.holdingRegisters[len(r.holdingRegisters)-1].Offset + r.holdingRegisters[len(r.holdingRegisters)-1].Length) - offset
+	r.logger.Debugf("Reading holding registers: Offset %v Length %v", offset, length)
 
-	b, err := r.client.ReadHoldingRegisters(uint16(start), uint16(end))
+	b, err := r.client.ReadHoldingRegisters(uint16(offset), uint16(length))
 	if err != nil {
 		return nil, err
 	}
 
 	// Map holding register names to values
-	for _, block := range r.holdingRegisters {
-		value := b[block.Offset:block.Length]
-		results[block.Name] = strconv.Itoa(int(value[0]))
+	for i, block := range r.holdingRegisters {
+		//value := b[block.Offset:block.Length]
+		results[block.Name] = strconv.Itoa(int(b[i]))
 	}
 
 	/*
