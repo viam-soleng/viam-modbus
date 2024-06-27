@@ -161,7 +161,7 @@ func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interfa
 
 type filter struct {
 	Name  string `json:"name,omitempty"`
-	Value uint   `json:"value,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 func store(filter filter, results map[string]interface{}) bool {
