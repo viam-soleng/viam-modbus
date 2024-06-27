@@ -19,6 +19,7 @@ type ModbusBlocks struct {
 	Length int    `json:"length"`
 	Type   string `json:"type"`
 	Name   string `json:"name"`
+	Filter filter `json:"filter"`
 }
 
 func (cfg *ModbusTcpConfig) Validate(path string) ([]string, error) {

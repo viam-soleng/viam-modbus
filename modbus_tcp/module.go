@@ -11,6 +11,7 @@ import (
 
 	"github.com/simonvetter/modbus"
 	"go.viam.com/rdk/components/sensor"
+	"go.viam.com/rdk/data"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
 
@@ -148,7 +149,27 @@ func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interfa
 			results[block.Name] = "unsupported type"
 		}
 	}
-	return results, nil
+
+	// TODO: Check if request is from data manager
+	if store(r.blocks[0].Filter, results) {
+		return results, nil
+	} else {
+		return nil, data.ErrNoCaptureToStore
+	}
+
+}
+
+type filter struct {
+	Name  string `json:"name,omitempty"`
+	Value uint   `json:"value,omitempty"`
+}
+
+func store(filter filter, results map[string]interface{}) bool {
+	if results[filter.Name] == filter.Value {
+		return true
+	} else {
+		return false
+	}
 }
 
 func writeBoolArrayToOutput(b []bool, block ModbusBlocks, results map[string]interface{}) {
