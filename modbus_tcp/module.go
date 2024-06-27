@@ -151,6 +151,7 @@ func (r *ModbusTcpSensor) Readings(ctx context.Context, extra map[string]interfa
 	}
 
 	// TODO: Check if request is from data manager
+	r.logger.Infof("Filter: %v", r.blocks[0].Filter)
 	if store(r.blocks[0].Filter, results) {
 		return results, nil
 	} else {
