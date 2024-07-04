@@ -1,4 +1,4 @@
-package modbus_tcp_board
+package modbus_board
 
 import (
 	"context"
@@ -16,7 +16,7 @@ type ModbusAnalogPin struct {
 	offset   uint16
 	dataType string
 	pinType  modbus.RegType
-	board    *ModbusTcpBoard
+	board    *ModbusBoard
 }
 
 // Close implements board.AnalogReader.
@@ -84,7 +84,7 @@ func (r *ModbusAnalogPin) Write(ctx context.Context, value int, extra map[string
 }
 
 // Why do we need a board here? because we need to reinitialize the modbus client if there is an error. this can probably be done better, but here we are
-func NewModbusAnalogPin(board *ModbusTcpBoard, conf ModbusAnalogPinCloudConfig) (*ModbusAnalogPin, error) {
+func NewModbusAnalogPin(board *ModbusBoard, conf ModbusAnalogPinCloudConfig) (*ModbusAnalogPin, error) {
 	var t modbus.RegType
 	switch common.NewPinType(conf.PinType) {
 	case common.INPUT_PIN:
