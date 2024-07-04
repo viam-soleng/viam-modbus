@@ -19,6 +19,8 @@ The Viam Modbus module enables seamless communication between devices by acting 
 
 
 ## Modbus Client Configuration
+> [!NOTE]  
+> Serial/RTU client not yet published to registry!
 
 The Viam modbus client module supports connections over tcp and serial. Which mode is used, depends on the `modbus.url` prefix as explained below.
 As with any other Viam module you can apply the configuration to your component into the `Configure` section.
