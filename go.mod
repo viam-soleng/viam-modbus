@@ -7,7 +7,6 @@ require (
 	github.com/stretchr/testify v1.9.0
 	go.viam.com/api v0.1.330
 	go.viam.com/rdk v0.37.0
-	go.viam.com/utils v0.1.92
 )
 
 require (
@@ -117,6 +116,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	go.viam.com/test v1.1.1-0.20220913152726-5da9916c08a2 // indirect
+	go.viam.com/utils v0.1.92 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/exp v0.0.0-20230725012225-302865e7556b // indirect
 	golang.org/x/image v0.15.0 // indirect
