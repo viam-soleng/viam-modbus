@@ -1,38 +1,39 @@
-package modbus_board
+// Package board provides a board component that reads data from a modbus server and exposes it as a board in Viam
+package board
 
 import (
 	"context"
 	"errors"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/simonvetter/modbus"
 	pb "go.viam.com/api/component/board/v1"
 	"go.viam.com/rdk/components/board"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
 
 	"viam-modbus/common"
-	"viam-modbus/utils"
 )
 
-// TODO: Change model from "modbus-tcp" to "modbus"
-var Model = resource.NewModel("viam-soleng", "board", "modbus-tcp")
+type resourceType = board.Board
+type config = *modbusBoardCloudConfig
+
+var API = board.API
+var Model = resource.NewModel("viam-soleng", "modbus", "board")
 
 func init() {
 	resource.RegisterComponent(
-		board.API,
+		API,
 		Model,
-		resource.Registration[board.Board, *ModbusBoardCloudConfig]{
+		resource.Registration[resourceType, config]{
 			Constructor: NewModbusBoard,
 		},
 	)
 }
 
-func NewModbusBoard(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (board.Board, error) {
-	logger.Infof("Starting Modbus Board Component %v", utils.Version)
+func NewModbusBoard(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (resourceType, error) {
+	logger.Infof("Starting Modbus Board Component %v", common.Version)
 	c, cancelFunc := context.WithCancel(context.Background())
 	b := ModbusBoard{
 		Named:      conf.ResourceName().AsNamed(),
@@ -70,7 +71,7 @@ func (r *ModbusBoard) getAnalogPin(name string) (*ModbusAnalogPin, error) {
 	return nil, errors.New("pin not found")
 }
 
-// AnalogReaderByName implements board.Board.
+// AnalogByName implements board.Board.
 func (r *ModbusBoard) AnalogByName(name string) (board.Analog, error) {
 	pin, err := r.getAnalogPin(name)
 	if err != nil {
@@ -79,7 +80,7 @@ func (r *ModbusBoard) AnalogByName(name string) (board.Analog, error) {
 	return pin, nil
 }
 
-// AnalogReaderNames implements board.Board.
+// AnalogNames implements board.Board.
 func (*ModbusBoard) AnalogNames() []string {
 	return nil
 }
@@ -125,12 +126,12 @@ func (r *ModbusBoard) Close(ctx context.Context) error {
 	defer r.mu.Unlock()
 	r.logger.Info("Closing Modbus Board Component")
 	r.cancelFunc()
-	if r.client != nil {
-		err := r.client.Close()
-		if err != nil {
-			r.logger.Errorf("Failed to close modbus client: %#v", err)
-		}
-	}
+	// if r.client != nil {
+	// 	err := r.client.Close()
+	// 	if err != nil {
+	// 		r.logger.Errorf("Failed to close modbus client: %#v", err)
+	// 	}
+	// }
 	return nil
 }
 
@@ -145,7 +146,7 @@ func (r *ModbusBoard) Reconfigure(ctx context.Context, deps resource.Dependencie
 	defer r.mu.Unlock()
 	r.logger.Debug("Parsing new configuration for Modbus Board")
 
-	newConf, err := resource.NativeConfig[*ModbusBoardCloudConfig](conf)
+	newConf, err := resource.NativeConfig[*modbusBoardCloudConfig](conf)
 	if err != nil {
 		return err
 	}
@@ -156,43 +157,11 @@ func (r *ModbusBoard) Reconfigure(ctx context.Context, deps resource.Dependencie
 	return r.reconfigure(newConf, deps)
 }
 
-func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, _ resource.Dependencies) error {
+func (r *ModbusBoard) reconfigure(newConf *modbusBoardCloudConfig, _ resource.Dependencies) error {
 	r.logger.Infof("Reconfiguring Modbus Board Component with %v", newConf)
-	if r.client != nil {
-		err := r.client.Close()
-		if err != nil {
-			r.logger.Errorf("Failed to close modbus client: %#v", err)
-			// TODO: should we exit here?
-			os.Exit(1)
-		}
-	}
 
-	endianness, err := common.GetEndianness(newConf.Modbus.Endianness)
+	client, err := common.NewModbusClient(r.logger, newConf.Modbus)
 	if err != nil {
-		return err
-	}
-
-	wordOrder, err := common.GetWordOrder(newConf.Modbus.WordOrder)
-	if err != nil {
-		return err
-	}
-
-	timeout := time.Millisecond * time.Duration(newConf.Modbus.Timeout)
-
-	clientConfig := modbus.ClientConfiguration{
-		URL:      newConf.Modbus.URL,
-		Speed:    newConf.Modbus.Speed,
-		DataBits: newConf.Modbus.DataBits,
-		Parity:   newConf.Modbus.Parity,
-		StopBits: newConf.Modbus.StopBits,
-		Timeout:  timeout,
-		// TODO: To be implemented
-		//TLSClientCert: tlsClientCert,
-		//TLSRootCAs:    tlsRootCAs,
-	}
-	client, err := common.NewModbusClient(r.logger, endianness, wordOrder, clientConfig)
-	if err != nil {
-		r.logger.Errorf("Failed to initialize modbus client: %#v", err)
 		return err
 	}
 	r.client = client
@@ -201,7 +170,7 @@ func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, _ resource.De
 	for _, pinConf := range newConf.GpioPins {
 		r.logger.Debugf("Creating GPIO pin: %v", pinConf.Name)
 		pinType := common.NewPinType(pinConf.PinType)
-		if pinType == common.UNKNOWN {
+		if pinType == common.Unknown {
 			return common.ErrInvalidPinType
 		}
 		pin := NewModbusGpioPin(r, uint16(pinConf.Offset), pinType)

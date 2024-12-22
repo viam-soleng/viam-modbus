@@ -1,12 +1,10 @@
 module viam-modbus
 
-go 1.23
-
-toolchain go1.23.3
+go 1.23.3
 
 require (
-	github.com/simonvetter/modbus v1.6.3
-	github.com/stretchr/testify v1.9.0
+	github.com/goburrow/serial v0.1.0
+	github.com/rinzlerlabs/gomodbus v0.0.0-20241222163603-baf7207228a0
 	github.com/thegreatco/viamutils v0.0.2
 	go.viam.com/api v0.1.351
 	go.viam.com/rdk v0.47.2
@@ -51,7 +49,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-pdf/fpdf v0.6.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.1.0 // indirect
-	github.com/goburrow/serial v0.1.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
@@ -107,6 +104,7 @@ require (
 	github.com/rs/cors v1.11.1 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/srikrsna/protoc-gen-gotag v0.6.2 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/viamrobotics/webrtc/v3 v3.99.10 // indirect
 	github.com/wlynxg/anet v0.0.3 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect

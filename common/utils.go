@@ -2,51 +2,38 @@ package common
 
 import (
 	"errors"
-
-	"github.com/simonvetter/modbus"
 )
+
+var Version = "v0.0.4"
+
+// Change the namespace to match your organization name so it can be uploaded to your private registry
+var Namespace = "viam-soleng"
+
+// Change the logger name if you want to customize it
+var LoggerName = "viam-modbus"
 
 type PinType string
 
 const (
-	OUTPUT_PIN PinType = "output"
-	INPUT_PIN  PinType = "input"
-	UNKNOWN    PinType = "unknown"
+	OutputPin PinType = "output"
+	InputPin  PinType = "input"
+	Unknown   PinType = "unknown"
 )
 
-var ErrInvalidPinType = errors.New("invalid pin type")
-var ErrSetInputPin = errors.New("cannot set input pin")
-var ErrRetriesExhausted = errors.New("retries exhausted")
+var (
+	ErrInvalidPinType      = errors.New("invalid pin type")
+	ErrSetInputPin         = errors.New("cannot set input pin")
+	ErrRetriesExhausted    = errors.New("retries exhausted")
+	ErrInvalidRegisterType = errors.New("invalid register type")
+)
 
 func NewPinType(s string) PinType {
 	switch s {
 	case "output":
-		return OUTPUT_PIN
+		return OutputPin
 	case "input":
-		return INPUT_PIN
+		return InputPin
 	default:
-		return UNKNOWN
-	}
-}
-
-func GetEndianness(s string) (modbus.Endianness, error) {
-	switch s {
-	case "big":
-		return modbus.BIG_ENDIAN, nil
-	case "little":
-		return modbus.LITTLE_ENDIAN, nil
-	default:
-		return 0, errors.New("invalid endianness")
-	}
-}
-
-func GetWordOrder(s string) (modbus.WordOrder, error) {
-	switch s {
-	case "high":
-		return modbus.HIGH_WORD_FIRST, nil
-	case "low":
-		return modbus.LOW_WORD_FIRST, nil
-	default:
-		return 0, errors.New("invalid word order")
+		return Unknown
 	}
 }

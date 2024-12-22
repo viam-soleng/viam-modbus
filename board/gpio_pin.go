@@ -1,4 +1,4 @@
-package modbus_board
+package board
 
 import (
 	"context"
@@ -19,7 +19,7 @@ type ModbusGpioPin struct {
 func (r *ModbusGpioPin) Get(ctx context.Context, extra map[string]interface{}) (bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if r.pinType == common.INPUT_PIN {
+	if r.pinType == common.InputPin {
 		return r.board.client.ReadDiscreteInput(r.offset)
 	} else {
 		return r.board.client.ReadCoil(r.offset)
@@ -40,7 +40,7 @@ func (*ModbusGpioPin) PWMFreq(ctx context.Context, extra map[string]interface{})
 func (r *ModbusGpioPin) Set(ctx context.Context, high bool, extra map[string]interface{}) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	if r.pinType == common.INPUT_PIN {
+	if r.pinType == common.InputPin {
 		return common.ErrSetInputPin
 	}
 	return r.board.client.WriteCoil(r.offset, high)

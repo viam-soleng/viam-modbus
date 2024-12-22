@@ -1,4 +1,4 @@
-package modbus_sensor
+package sensor
 
 import (
 	"errors"
@@ -7,19 +7,19 @@ import (
 	"viam-modbus/common"
 )
 
-type ModbusSensorConfig struct {
-	Modbus *common.ModbusClientConfig `json:"modbus"`
-	Blocks []ModbusBlocks             `json:"blocks"`
+type modbusSensorConfig struct {
+	Modbus *common.ModbusConfig `json:"modbus"`
+	Blocks []modbusBlocks       `json:"blocks"`
 }
 
-type ModbusBlocks struct {
+type modbusBlocks struct {
 	Offset int    `json:"offset"`
 	Length int    `json:"length"`
 	Type   string `json:"type"`
 	Name   string `json:"name"`
 }
 
-func (cfg *ModbusSensorConfig) Validate(path string) ([]string, error) {
+func (cfg *modbusSensorConfig) Validate(path string) ([]string, error) {
 	if cfg.Modbus == nil {
 		return nil, errors.New("modbus is required")
 	}
