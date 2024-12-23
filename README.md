@@ -16,11 +16,32 @@ The Viam Modbus module enables seamless communication between devices by acting 
 - **Device Control:** Enables the reading of writing of coils and registers onto a Modbus Server.
 - **Configurable Parameters:** Offers customization options for the device address, word_order, endianness, timeouts, pin types, data types and more.
 
+## Component Types
 
+This library includes several Viam Components:
+* Board - A Modbus Client that exposes the registers of the Modbus Server according to the Viam Board API.
+* Sensor - A Modbus Client that exposes the registers of the Modbus Server via the Viam Sensor API 
+* Client Bridge - A component that runs 2 or more Modbus servers with a shared set of registers enabling bridging of Modbus Clients running on different physical mediums
+
+## Base Configuration Types
+
+There are 2 basic types of Modbus, "Network" (TCP/UDP) and "Serial" (RTU/ASCII).
+
+### Serial Configuration
+To configure any Modbus Serial connection simply set the `serial_config` field, with the following fields:
+| Setting | Data Type | Inclusion | Valid Values | Description |
+| ------- | --------- | --------- | ------------ | ----------- |
+|`server_id`|uint16|**Required**| 1-255 | The address of the server |
+|`speed`|uint|**Required**|Any valid baud rate| The baud rate to use for the connection|
+|`data_bits`|uint|**Required**|7, 8|The number of bits that make up a single byte|
+|`parity`|string|**Required**|"N", "E", "O"| Specifies how the parity is calculated with **N**one, **E**ven, **O**dd|
+|`stop_bits`|uint|**Required**|1, 2| ASCII requires 1 stop bit, RTU requires 1 or 2|
+|`rtu`|bool|Optional|true, false| True indicates that this is a Modbus RTU configuration|
+
+### Network Configuration
+To configure any Modbus Network connection, there are no extra fields required, simply specify an empty `tcp_config` key.
 
 ## Modbus Client Configuration
-> [!NOTE]  
-> Serial/RTU client not yet published to registry!
 
 The Viam modbus client module supports connections over tcp and serial. Which mode is used, depends on the `modbus.url` prefix as explained below.
 As with any other Viam module you can apply the configuration to your component into the `Configure` section.
@@ -29,11 +50,10 @@ There are two configuration areas. The `modbus`config path applies to both, the 
 ### TCP Client Example
 
 ```json
-  "modbus": {
-    "url": "tcp://192.168.1.124:502",
-    "word_order": "low",
-    "endianness": "big",
-    "timeout_ms": 10000
+  {
+    "name": "PLCClient",
+    "endpoint": "tcp://192.168.1.124:502",
+    "tcp_config": {},
   }
 ```
 
@@ -41,22 +61,18 @@ There are two configuration areas. The `modbus`config path applies to both, the 
 
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
+| `name`  | string | optional     | A simple name for the client|
 | `url` | string | **Required** | TCP Config: `"tcp://<ip address>:port"`|
-| `timeout_ms` | string | Optional     | Connection timeout |
-| `endianness` | string | Optional     |       |
-| `word_order` | string | Optional     |       |
-| `tls_client_cert` | string | Optional     |   Not implemented yet    |
-| `tls_root_cas` | string | Optional     |   Not implemented yet    |
 
 ### Serial / RTU Client Example
 
 Add this to your modbus board or sensor component to configure the modbus client to use serial communication.
 
 ```json
-  "modbus": {
-    "url": "rtu:///dev/tty...",
-    "speed": 115200,
-    "timeout_ms": 10000
+  {
+    "name": "MyPLC",
+    "endpoint": "/dev/tty...",
+    "serial_config": {...},
   }
 ```
 
@@ -64,14 +80,29 @@ Add this to your modbus board or sensor component to configure the modbus client
 
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
-| `url` | string | **Required** | Serial Config: `"rtu://<serial device path>"`|
-| `speed` | string | **Required** | Bit (bit/s) |
-| `data_bits` | uint | Optional |  |
-| `parity` | uint | Optional |  |
-| `stop_bits` | uint | Optional |  |
-| `timeout_ms` | string | Optional     | Connection timeout |
-| `endianness` | string | Optional     |       |
-| `word_order` | string | Optional     |       |
+| `name`  | string | optional     | A simple name for the client|
+| `endpoint` | string | **Required** | Serial Config: `"//<serial device path>"`|
+| `serial_config` | SerialConfig | **Required** | The [Serial Configuration](#serial-configuration) |
+
+### Serial / ASCII Client Example
+
+Add this to your modbus board or sensor component to configure the modbus client to use serial communication.
+
+```json
+  {
+    "name": "MyPLC",
+    "endpoint": "/dev/tty...",
+    "serial_config": {...}
+  }
+```
+
+**Serial Client Configuration Attributes**
+
+| Name    | Type   | Inclusion    | Description |
+| ------- | ------ | ------------ | ----------- |
+| `name`  | string | optional     | A simple name for the client|
+| `endpoint` | string | **Required** | Serial Config: `"//<serial device path>"`|
+| `serial_config` | SerialConfig | **Required** | The [Serial Configuration](#serial-configuration) |
 
 ## Modbus Sensor Configuration
 
@@ -149,8 +180,38 @@ Sample Configuration Attributes for a Board Component:
 |`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Register address decimal|
 |`analog_pins`| `data_type` | string | **Required** | "uint8" \| "uint16" \| "uint32" \| "uint64" \| "float32" \| "float64" |
 
+
+## Modbus Server Bridge Configuration
+
+```json
+{
+  "servers": [
+    {
+      "name": "oven",
+      "endpoint": "/dev/ttyUSB0",
+      "timeout_ms": 10000,
+      "serial_config": {
+        "server_id": 91,
+        "speed": 19200,
+        "data_bits": 8,
+        "parity": "N",
+        "stop_bits": 2,
+        "rtu": true
+      }
+    },
+    {
+      "endpoint": ":502",
+      "timeout_ms": 10000,
+      "tcp_config": {},
+      "name": "tcp"
+    }
+  ],
+  "persist_data": true
+}
+```
+
 ## TODO:
   - Authentication
 
 ## Credits
-- Simon Vetter [Go Modbus Library](https://github.com/simonvetter/modbus)
+- RinzlerLabs [Go Modbus Library](https://github.com/rinzlerlabs/gomodbus)

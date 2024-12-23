@@ -9,7 +9,7 @@ type ModbusConfig struct {
 	Endpoint     string              `json:"endpoint"`
 	SerialConfig *ModbusSerialConfig `json:"serial_config"`
 	TCPConfig    *ModbusTCPConfig    `json:"tcp_config"`
-	Timeout      int                 `json:"timeout_ms"`
+	// Timeout      int                 `json:"timeout_ms"`
 }
 
 type ModbusSerialConfig struct {
@@ -22,14 +22,14 @@ type ModbusSerialConfig struct {
 }
 
 type ModbusTCPConfig struct {
-	TLSClientCert string `json:"tls_client_cert"`
-	TLSRootCAs    string `json:"tls_root_cas"`
+	// TLSClientCert string `json:"tls_client_cert"`
+	// TLSRootCAs    string `json:"tls_root_cas"`
 }
 
 func (cfg *ModbusConfig) Validate() error {
-	if cfg.Timeout <= 0 {
-		return errors.New("timeout_ms must be greater than 0")
-	}
+	// if cfg.Timeout <= 0 {
+	// 	return errors.New("timeout_ms must be greater than 0")
+	// }
 
 	if cfg.Endpoint == "" {
 		return errors.New("endpoint must be set")
