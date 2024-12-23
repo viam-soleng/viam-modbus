@@ -23,11 +23,11 @@ This library includes several Viam Components:
 * Sensor - A Modbus Client that exposes the registers of the Modbus Server via the Viam Sensor API 
 * Client Bridge - A component that runs 2 or more Modbus servers with a shared set of registers enabling bridging of Modbus Clients running on different physical mediums
 
-## Base Configuration Types
+## Transport Types
 
-There are 2 basic types of Modbus, "Network" (TCP/UDP) and "Serial" (RTU/ASCII).
+There are 2 basic Modbus transport types, "Network" (TCP/UDP) and "Serial" (RTU/ASCII).
 
-### Serial Configuration
+### Serial Attributes
 To configure any Modbus Serial connection simply set the `serial_config` field, with the following fields:
 | Setting | Data Type | Inclusion | Valid Values | Description |
 | ------- | --------- | --------- | ------------ | ----------- |
@@ -38,7 +38,7 @@ To configure any Modbus Serial connection simply set the `serial_config` field, 
 |`stop_bits`|uint|**Required**|1, 2| ASCII requires 1 stop bit, RTU requires 1 or 2|
 |`rtu`|bool|Optional|true, false| True indicates that this is a Modbus RTU configuration|
 
-### Network Configuration
+### Network Attributes
 To configure any Modbus Network connection, there are no extra fields required, simply specify an empty `tcp_config` key.
 
 ## Modbus Client Configuration
@@ -181,7 +181,9 @@ Sample Configuration Attributes for a Board Component:
 |`analog_pins`| `data_type` | string | **Required** | "uint8" \| "uint16" \| "uint32" \| "uint64" \| "float32" \| "float64" |
 
 
-## Modbus Server Bridge Configuration
+## Modbus Server Bridge
+
+Create 2 or more servers, that share the same registers, so that multiple clients, across different transports, can read/write the same data.
 
 ```json
 {
@@ -190,25 +192,23 @@ Sample Configuration Attributes for a Board Component:
       "name": "oven",
       "endpoint": "/dev/ttyUSB0",
       "timeout_ms": 10000,
-      "serial_config": {
-        "server_id": 91,
-        "speed": 19200,
-        "data_bits": 8,
-        "parity": "N",
-        "stop_bits": 2,
-        "rtu": true
-      }
+      "serial_config": {...}
     },
     {
       "endpoint": ":502",
       "timeout_ms": 10000,
-      "tcp_config": {},
+      "tcp_config": {...},
       "name": "tcp"
     }
   ],
   "persist_data": true
 }
 ```
+### Modbus Server Bridge Attributes
+| Setting | Data Type | Inclusion | Valid Values | Description |
+| ------- | --------- | --------- | ------------ | ----------- |
+|`servers`|ModbusConfig[]|**Required**| - |The list of servers to create|
+
 
 ## TODO:
   - Authentication
