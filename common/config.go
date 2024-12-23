@@ -1,8 +1,11 @@
 package common
 
-import "errors"
+import (
+	"errors"
+)
 
 type ModbusConfig struct {
+	Name         string              `json:"name"`
 	Endpoint     string              `json:"endpoint"`
 	SerialConfig *ModbusSerialConfig `json:"serial_config"`
 	TCPConfig    *ModbusTCPConfig    `json:"tcp_config"`

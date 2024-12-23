@@ -8,29 +8,25 @@ import (
 )
 
 type modbusBridgeConfig struct {
-	Endpoints []namedModbusConfig `json:"endpoints"`
-}
-
-type namedModbusConfig struct {
-	common.ModbusConfig
-	Name string `json:"name"`
+	Servers     []common.ModbusConfig `json:"servers"`
+	PersistData bool                  `json:"persist_data"`
 }
 
 func (cfg *modbusBridgeConfig) Validate(path string) ([]string, error) {
-	if cfg.Endpoints == nil {
-		return nil, errors.New("endpoints is required")
+	if cfg.Servers == nil {
+		return nil, errors.New("servers is required")
 	}
-	existingNames := make([]string, len(cfg.Endpoints))
-	for i, endpoint := range cfg.Endpoints {
-		if e := endpoint.Validate(); e != nil {
-			return nil, fmt.Errorf("endpoint %v: %v", i, e)
+	existingNames := make([]string, len(cfg.Servers))
+	for i, serverCfg := range cfg.Servers {
+		if e := serverCfg.Validate(); e != nil {
+			return nil, fmt.Errorf("server %d: %v", i, e)
 		}
 		for _, name := range existingNames {
-			if name == endpoint.Name {
-				return nil, fmt.Errorf("duplicate endpoint name: %v", endpoint.Name)
+			if name == serverCfg.Name {
+				return nil, fmt.Errorf("duplicate endpoint name: %v", serverCfg.Name)
 			}
 		}
-		existingNames[i] = endpoint.Name
+		existingNames[i] = serverCfg.Name
 	}
 	return nil, nil
 }

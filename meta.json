@@ -6,33 +6,21 @@
   "models": [
     {
       "api": "rdk:component:board",
-      "model": "viam-soleng:modbus:client_tcp"
-    },
-    {
-      "api":"rdk:component:sensor",
-      "model":"viam-soleng:modbus:client_tcp"
+      "model": "viam-soleng:modbus:board"
     },
     {
       "api": "rdk:component:sensor",
-      "model": "viam-soleng:modbus:client_ascii"
-    },
-    {
-      "api": "rdk:component:board",
-      "model": "viam-soleng:modbus:client_ascii"
+      "model": "viam-soleng:modbus:sensor"
     },
     {
       "api": "rdk:component:sensor",
-      "model": "viam-soleng:modbus:client_rtu"
-    },
-    {
-      "api": "rdk:component:board",
-      "model": "viam-soleng:modbus:client_rtu"
+      "model": "viam-soleng:modbus:server-bridge"
     }
   ],
   "build": {
     "setup": "./setup.sh",
     "build": "make package",
-    "path": "viam-modbus.tgz",
+    "path": "viam-modbus.tar.gz",
     "arch": ["linux/amd64", "linux/arm64", "darwin/arm64"]
   },
   "entrypoint": "bin/viam-modbus"

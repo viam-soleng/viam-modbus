@@ -5,14 +5,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
+	"sync"
 
 	"github.com/goburrow/serial"
 	"github.com/rinzlerlabs/gomodbus/server"
 	"github.com/rinzlerlabs/gomodbus/server/network/tcp"
 	"github.com/rinzlerlabs/gomodbus/server/serial/ascii"
 	"github.com/rinzlerlabs/gomodbus/server/serial/rtu"
-	"go.viam.com/rdk/components/board"
 	"go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -23,9 +24,12 @@ import (
 type resourceType = sensor.Sensor
 type config = *modbusBridgeConfig
 
-var API = board.API
-var Model = resource.NewModel("viam-soleng", "modbus", "server-bridge")
-var PrettyName = "Modbus Server Bridge"
+var (
+	ErrNoDataDir = errors.New("no data directory")
+	API          = sensor.API
+	Model        = resource.NewModel("viam-soleng", "modbus", "server-bridge")
+	PrettyName   = "Modbus Server Bridge"
+)
 
 func init() {
 	resource.RegisterComponent(
@@ -41,11 +45,12 @@ func NewModbusBridge(ctx context.Context, deps resource.Dependencies, conf resou
 	logger.Infof("Starting %v Component %v", PrettyName, common.Version)
 	c, cancelFunc := context.WithCancel(context.Background())
 	b := modbusBridge{
-		Named:      conf.ResourceName().AsNamed(),
-		logger:     logger,
-		cancelFunc: cancelFunc,
-		ctx:        c,
-		handler:    server.NewDefaultHandler(logger.AsZap().Desugar(), 65535, 65535, 65535, 65535),
+		Named:       conf.ResourceName().AsNamed(),
+		logger:      logger,
+		cancelFunc:  cancelFunc,
+		ctx:         c,
+		handler:     server.NewDefaultHandler(logger.AsZap().Desugar(), 65535, 65535, 65535, 65535),
+		persistData: false,
 	}
 
 	if err := b.Reconfigure(ctx, deps, conf); err != nil {
@@ -58,14 +63,18 @@ func NewModbusBridge(ctx context.Context, deps resource.Dependencies, conf resou
 
 type modbusBridge struct {
 	resource.Named
-	logger     logging.Logger
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	handler    server.RequestHandler
-	servers    map[string]server.ModbusServer
+	logger      logging.Logger
+	cancelFunc  context.CancelFunc
+	ctx         context.Context
+	handler     server.RequestHandler
+	servers     map[string]server.ModbusServer
+	persistData bool
+	mu          sync.Mutex
 }
 
 func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependencies, rawConf resource.Config) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	b.logger.Infof("Reconfiguring %v Component %v", PrettyName, common.Version)
 
 	conf, err := resource.NativeConfig[config](rawConf)
@@ -73,9 +82,25 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 		return err
 	}
 
+	b.persistData = conf.PersistData
+	if b.persistData {
+		b.logger.Infof("Loading persisted data")
+		dataDir := os.Getenv("VIAM_MODULE_DATA")
+		if _, err := os.Stat(dataDir); os.IsNotExist(err) || dataDir == "" {
+			b.logger.Warnf("Data directory does not exist, cannot persist current data: %v", dataDir)
+			return ErrNoDataDir
+		}
+		err := loadHandlerData(dataDir, b.handler)
+		if err != nil {
+			b.logger.Warnf("Failed to load handler data: %v", err)
+			return err
+		} else {
+			b.logger.Infof("Data loaded successfully")
+		}
+	}
 	servers := make(map[string]server.ModbusServer)
 	errs := make([]error, 0)
-	for _, endpoint := range conf.Endpoints {
+	for _, endpoint := range conf.Servers {
 		if endpoint.SerialConfig != nil {
 			serialConfig := &serial.Config{
 				Address:  endpoint.Endpoint,
@@ -91,9 +116,9 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 			}
 			var server server.ModbusServer
 			if endpoint.SerialConfig.RTU {
-				server, err = rtu.NewModbusServer(b.logger.AsZap().Desugar(), port, endpoint.SerialConfig.ServerAddress)
+				server, err = rtu.NewModbusServerWithHandler(b.logger.Desugar(), port, endpoint.SerialConfig.ServerAddress, b.handler)
 			} else {
-				server, err = ascii.NewModbusServer(b.logger.AsZap().Desugar(), port, endpoint.SerialConfig.ServerAddress)
+				server, err = ascii.NewModbusServerWithHandler(b.logger.Desugar(), port, endpoint.SerialConfig.ServerAddress, b.handler)
 			}
 			if err != nil {
 				errs = append(errs, err)
@@ -101,7 +126,7 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 				servers[endpoint.Name] = server
 			}
 		} else if endpoint.TCPConfig != nil {
-			server, err := tcp.NewModbusServer(b.logger.Desugar(), endpoint.Endpoint)
+			server, err := tcp.NewModbusServerWithHandler(b.logger.Desugar(), endpoint.Endpoint, b.handler)
 			if err != nil {
 				errs = append(errs, err)
 			} else {
@@ -112,7 +137,8 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
-	return startServers(servers)
+	b.servers = servers
+	return startServers(b.servers)
 }
 
 func startServers(servers map[string]server.ModbusServer) error {
@@ -124,15 +150,15 @@ func startServers(servers map[string]server.ModbusServer) error {
 		}
 	}
 	if len(errs) > 0 {
-		stopServers(servers)
+		closeServers(servers)
 	}
 	return errors.Join(errs...)
 }
 
-func stopServers(servers map[string]server.ModbusServer) error {
+func closeServers(servers map[string]server.ModbusServer) error {
 	var errs error
 	for _, s := range servers {
-		err := s.Stop()
+		err := s.Close()
 		if err != nil {
 			errors.Join(errs, err)
 		}
@@ -141,7 +167,41 @@ func stopServers(servers map[string]server.ModbusServer) error {
 }
 
 func (b *modbusBridge) Close(ctx context.Context) error {
-	return stopServers(b.servers)
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	err := closeServers(b.servers)
+	if err != nil {
+		b.logger.Warnf("Failed to stop servers: %v", err)
+	}
+	if b.persistData {
+		b.logger.Infof("Persisting data")
+		dataDir := os.Getenv("VIAM_MODULE_DATA")
+		if _, err := os.Stat(dataDir); os.IsNotExist(err) || dataDir == "" {
+			b.logger.Warnf("Data directory does not exist, cannot persist current data: %v", dataDir)
+			return ErrNoDataDir
+		}
+		err = saveHandlerData(dataDir, b.handler)
+		if err != nil {
+			b.logger.Warnf("Failed to save handler data: %v", err)
+		} else {
+			b.logger.Infof("Data persisted successfully")
+		}
+	}
+	return nil
+}
+
+func saveHandlerData(dataDir string, handler server.RequestHandler) error {
+	if h, ok := handler.(server.PersistableRequestHandler); ok {
+		return h.Save(dataDir)
+	}
+	return errors.New("handler does not support saving")
+}
+
+func loadHandlerData(dataDir string, handler server.RequestHandler) error {
+	if h, ok := handler.(server.PersistableRequestHandler); ok {
+		return h.Load(dataDir)
+	}
+	return errors.New("handler does not support loading")
 }
 
 func (b *modbusBridge) Readings(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
@@ -151,7 +211,7 @@ func (b *modbusBridge) Readings(ctx context.Context, cmd map[string]interface{})
 		addStats(ret, serverName, server)
 	}
 
-	return nil, nil
+	return ret, nil
 }
 
 func addStats(m map[string]interface{}, serverName string, server server.ModbusServer) {
@@ -175,5 +235,4 @@ func addStatKey(m map[string]interface{}, serverName, statName string, stat inte
 	default:
 		m[fmt.Sprintf("%s.%s", serverName, statName)] = fmt.Sprintf("%v", v)
 	}
-	m[fmt.Sprintf("%s.%s", serverName, statName)] = stat
 }
