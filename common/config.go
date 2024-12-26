@@ -2,55 +2,58 @@ package common
 
 import (
 	"errors"
+	"net/url"
 )
 
 type ModbusConfig struct {
-	Name         string              `json:"name"`
-	Endpoint     string              `json:"endpoint"`
-	SerialConfig *ModbusSerialConfig `json:"serial_config"`
-	TCPConfig    *ModbusTCPConfig    `json:"tcp_config"`
-	// Timeout      int                 `json:"timeout_ms"`
-}
-
-type ModbusSerialConfig struct {
+	Name          string `json:"name"`
+	Endpoint      string `json:"endpoint"`
 	ServerAddress uint16 `json:"server_id"`
 	Speed         uint   `json:"speed"`
 	DataBits      uint   `json:"data_bits"`
 	Parity        string `json:"parity"`
 	StopBits      uint   `json:"stop_bits"`
-	RTU           bool   `json:"rtu"`
-}
-
-type ModbusTCPConfig struct {
 	// TLSClientCert string `json:"tls_client_cert"`
 	// TLSRootCAs    string `json:"tls_root_cas"`
 }
 
-func (cfg *ModbusConfig) Validate() error {
-	// if cfg.Timeout <= 0 {
-	// 	return errors.New("timeout_ms must be greater than 0")
-	// }
+func (cfg *ModbusConfig) IsSerial() bool {
+	u, _ := url.Parse(cfg.Endpoint)
+	return u.Scheme == "ascii" || u.Scheme == "rtu"
+}
 
+func (cfg *ModbusConfig) IsRTU() bool {
+	u, _ := url.Parse(cfg.Endpoint)
+	return u.Scheme == "rtu"
+}
+
+func (cfg *ModbusConfig) IsNetwork() bool {
+	u, _ := url.Parse(cfg.Endpoint)
+	return u.Scheme == "tcp" || u.Scheme == "udp"
+}
+
+func (cfg *ModbusConfig) Validate() error {
 	if cfg.Endpoint == "" {
 		return errors.New("endpoint must be set")
 	}
 
-	if cfg.SerialConfig != nil && cfg.TCPConfig != nil {
-		return errors.New("only one of serial_config or tcp_config can be set")
+	u, err := url.Parse(cfg.Endpoint)
+	if err != nil {
+		return err
 	}
-
-	if cfg.SerialConfig != nil {
-		return cfg.SerialConfig.Validate()
+	switch u.Scheme {
+	case "ascii":
+		return cfg.ValidateSerialConfig(false)
+	case "rtu":
+		return cfg.ValidateSerialConfig(true)
+	case "tcp":
+		return cfg.ValidateTCPConfig()
+	default:
+		return errors.New("invalid endpoint scheme")
 	}
-
-	if cfg.TCPConfig != nil {
-		return cfg.TCPConfig.Validate()
-	}
-
-	return errors.New("either serial_config or tcp_config must be set")
 }
 
-func (cfg *ModbusSerialConfig) Validate() error {
+func (cfg *ModbusConfig) ValidateSerialConfig(isRTU bool) error {
 	if cfg.Speed == 0 {
 		return errors.New("speed must be greater than 0")
 	}
@@ -59,7 +62,7 @@ func (cfg *ModbusSerialConfig) Validate() error {
 		return errors.New("parity must be 'N', 'E', or 'O'")
 	}
 
-	if cfg.RTU {
+	if isRTU {
 		if cfg.DataBits != 8 {
 			return errors.New("data_bits must be 8 for RTU")
 		}
@@ -79,6 +82,6 @@ func (cfg *ModbusSerialConfig) Validate() error {
 	return nil
 }
 
-func (cfg *ModbusTCPConfig) Validate() error {
+func (cfg *ModbusConfig) ValidateTCPConfig() error {
 	return nil
 }

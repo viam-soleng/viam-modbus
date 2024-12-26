@@ -9,7 +9,7 @@ import (
 
 	"github.com/goburrow/serial"
 	"github.com/rinzlerlabs/gomodbus/client"
-	"github.com/rinzlerlabs/gomodbus/client/network/tcp"
+	"github.com/rinzlerlabs/gomodbus/client/network"
 	"github.com/rinzlerlabs/gomodbus/client/serial/ascii"
 	"github.com/rinzlerlabs/gomodbus/client/serial/rtu"
 	"go.viam.com/rdk/logging"
@@ -68,25 +68,21 @@ func (r *ViamModbusClient) initializeModbusClient() error {
 
 	var client client.ModbusClient
 	var err error
-	if r.conf.SerialConfig != nil {
+	if r.conf.IsSerial() {
 		serialConfig := &serial.Config{
 			Address:  r.conf.Endpoint,
-			BaudRate: int(r.conf.SerialConfig.Speed),
-			DataBits: int(r.conf.SerialConfig.DataBits),
-			StopBits: int(r.conf.SerialConfig.StopBits),
-			Parity:   r.conf.SerialConfig.Parity,
+			BaudRate: int(r.conf.Speed),
+			DataBits: int(r.conf.DataBits),
+			StopBits: int(r.conf.StopBits),
+			Parity:   r.conf.Parity,
 		}
-		port, err := serial.Open(serialConfig)
-		if err != nil {
-			return err
-		}
-		if r.conf.SerialConfig.RTU {
-			client = rtu.NewModbusClient(r.logger.AsZap().Desugar(), port, 1*time.Second)
+		if r.conf.IsRTU() {
+			client, err = rtu.NewModbusClient(r.logger.AsZap().Desugar(), serialConfig, 1*time.Second)
 		} else {
-			client = ascii.NewModbusClient(r.logger.AsZap().Desugar(), port, 1*time.Second)
+			client, err = ascii.NewModbusClient(r.logger.AsZap().Desugar(), serialConfig, 1*time.Second)
 		}
-	} else if r.conf.TCPConfig != nil {
-		client, err = tcp.NewModbusClient(r.logger.AsZap().Desugar(), r.conf.Endpoint, 1*time.Second)
+	} else if r.conf.IsNetwork() {
+		client, err = network.NewModbusClient(r.logger.AsZap().Desugar(), r.conf.Endpoint, 1*time.Second)
 	} else {
 		return errors.New("invalid config")
 	}

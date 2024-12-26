@@ -5,13 +5,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
 
 	"github.com/goburrow/serial"
 	"github.com/rinzlerlabs/gomodbus/server"
-	"github.com/rinzlerlabs/gomodbus/server/network/tcp"
+	"github.com/rinzlerlabs/gomodbus/server/network"
 	"github.com/rinzlerlabs/gomodbus/server/serial/ascii"
 	"github.com/rinzlerlabs/gomodbus/server/serial/rtu"
 	"go.viam.com/rdk/components/sensor"
@@ -42,7 +43,7 @@ func init() {
 }
 
 func NewModbusBridge(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (resourceType, error) {
-	logger.Infof("Starting %v Component %v", PrettyName, common.Version)
+	logger.Infof("Starting %s Component %v", PrettyName, common.Version)
 	c, cancelFunc := context.WithCancel(context.Background())
 	b := modbusBridge{
 		Named:       conf.ResourceName().AsNamed(),
@@ -54,10 +55,10 @@ func NewModbusBridge(ctx context.Context, deps resource.Dependencies, conf resou
 	}
 
 	if err := b.Reconfigure(ctx, deps, conf); err != nil {
-		logger.Errorf("Failed to start Modbus Board Component %v", err)
+		logger.Errorf("Failed to start %s Component %v", PrettyName, err)
 		return nil, err
 	}
-	logger.Info("Modbus Board Component started successfully")
+	logger.Infof("%s Component started successfully", PrettyName)
 	return &b, nil
 }
 
@@ -101,32 +102,32 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 	servers := make(map[string]server.ModbusServer)
 	errs := make([]error, 0)
 	for _, endpoint := range conf.Servers {
-		if endpoint.SerialConfig != nil {
-			serialConfig := &serial.Config{
-				Address:  endpoint.Endpoint,
-				BaudRate: int(endpoint.SerialConfig.Speed),
-				DataBits: int(endpoint.SerialConfig.DataBits),
-				StopBits: int(endpoint.SerialConfig.StopBits),
-				Parity:   endpoint.SerialConfig.Parity,
+		if endpoint.IsSerial() {
+			u, e := url.Parse(endpoint.Endpoint)
+			if e != nil {
+				return e
 			}
-			port, err := serial.Open(serialConfig)
-			if err != nil {
-				errs = append(errs, err)
-				break
+			b.logger.Infof("Creating serial port %v", u.Path)
+			serialConfig := &serial.Config{
+				Address:  u.Path,
+				BaudRate: int(endpoint.Speed),
+				DataBits: int(endpoint.DataBits),
+				StopBits: int(endpoint.StopBits),
+				Parity:   endpoint.Parity,
 			}
 			var server server.ModbusServer
-			if endpoint.SerialConfig.RTU {
-				server, err = rtu.NewModbusServerWithHandler(b.logger.Desugar(), port, endpoint.SerialConfig.ServerAddress, b.handler)
+			if endpoint.IsRTU() {
+				server, err = rtu.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
 			} else {
-				server, err = ascii.NewModbusServerWithHandler(b.logger.Desugar(), port, endpoint.SerialConfig.ServerAddress, b.handler)
+				server, err = ascii.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
 			}
 			if err != nil {
 				errs = append(errs, err)
 			} else {
 				servers[endpoint.Name] = server
 			}
-		} else if endpoint.TCPConfig != nil {
-			server, err := tcp.NewModbusServerWithHandler(b.logger.Desugar(), endpoint.Endpoint, b.handler)
+		} else if endpoint.IsNetwork() {
+			server, err := network.NewModbusServerWithHandler(b.logger.Desugar(), endpoint.Endpoint, b.handler)
 			if err != nil {
 				errs = append(errs, err)
 			} else {
@@ -134,42 +135,48 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 			}
 		}
 	}
+	b.servers = servers
 	if len(errs) > 0 {
+		// If we had errors, we have to close servers that successfully opened because they may have acquired resources during construction.
+		b.closeServers()
 		return errors.Join(errs...)
 	}
-	b.servers = servers
-	return startServers(b.servers)
+	return b.startServers()
 }
 
-func startServers(servers map[string]server.ModbusServer) error {
+func (b *modbusBridge) startServers() error {
+	b.logger.Infof("Starting %v servers", len(b.servers))
 	errs := make([]error, 0)
-	for _, s := range servers {
+	for _, s := range b.servers {
 		err := s.Start()
 		if err != nil {
 			errs = append(errs, err)
 		}
 	}
 	if len(errs) > 0 {
-		closeServers(servers)
+		b.closeServers()
 	}
+	b.logger.Infof("Started %v servers with %v errors", len(b.servers), len(errs))
 	return errors.Join(errs...)
 }
 
-func closeServers(servers map[string]server.ModbusServer) error {
-	var errs error
-	for _, s := range servers {
+func (b *modbusBridge) closeServers() error {
+	b.logger.Infof("Stopping %v servers", len(b.servers))
+	errs := make([]error, 0)
+	for _, s := range b.servers {
 		err := s.Close()
 		if err != nil {
-			errors.Join(errs, err)
+			errs = append(errs, err)
 		}
 	}
-	return errs
+	b.logger.Infof("Stopped %v servers with %v errors", len(b.servers), len(errs))
+	return errors.Join(errs...)
 }
 
 func (b *modbusBridge) Close(ctx context.Context) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	err := closeServers(b.servers)
+	err := b.closeServers()
 	if err != nil {
 		b.logger.Warnf("Failed to stop servers: %v", err)
 	}

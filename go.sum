@@ -802,8 +802,10 @@ github.com/quasilyte/go-ruleguard/dsl v0.0.0-20210115110123-c73ee1cbff1f/go.mod 
 github.com/quasilyte/go-ruleguard/rules v0.0.0-20201231183845-9e62ed36efe1/go.mod h1:7JTjp89EGyU1d6XfBiXihJNG37wB2VRkd125Q1u7Plc=
 github.com/quasilyte/regex/syntax v0.0.0-20200407221936-30656e2c4a95/go.mod h1:rlzQ04UMyJXu/aOvhd8qT+hvDrFpiwqp8MRXDY9szc0=
 github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
-github.com/rinzlerlabs/gomodbus v0.0.0-20241223193133-b7feb9854ce4 h1:iS5yFwySz/K15rDxDiBV7H86q9rSJsNIw2NRbBI1Ls0=
-github.com/rinzlerlabs/gomodbus v0.0.0-20241223193133-b7feb9854ce4/go.mod h1:F+MQrLxrBxLsm90axI4TK6yQ/7wnjXortSgJXAlAUL0=
+github.com/rinzlerlabs/gomodbus v0.0.0-20241226205122-d8b5bd0ea3f8 h1:sR6FXvS+330csKZT/fPJFpuwmskYnqePdxlEQT8jRmo=
+github.com/rinzlerlabs/gomodbus v0.0.0-20241226205122-d8b5bd0ea3f8/go.mod h1:F+MQrLxrBxLsm90axI4TK6yQ/7wnjXortSgJXAlAUL0=
+github.com/rinzlerlabs/gomodbus v0.0.1 h1:X/v0bhE/4zjGSDHLiiGSvYTWh+y+OMEW/U0VSA2z0A4=
+github.com/rinzlerlabs/gomodbus v0.0.1/go.mod h1:F+MQrLxrBxLsm90axI4TK6yQ/7wnjXortSgJXAlAUL0=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=

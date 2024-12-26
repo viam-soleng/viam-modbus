@@ -4,7 +4,7 @@ go 1.23.3
 
 require (
 	github.com/goburrow/serial v0.1.0
-	github.com/rinzlerlabs/gomodbus v0.0.0-20241223193133-b7feb9854ce4
+	github.com/rinzlerlabs/gomodbus v0.0.1
 	github.com/thegreatco/viamutils v0.0.2
 	go.viam.com/api v0.1.351
 	go.viam.com/rdk v0.47.2

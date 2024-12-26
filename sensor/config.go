@@ -23,7 +23,6 @@ func (cfg *modbusSensorConfig) Validate(path string) ([]string, error) {
 	if cfg.Modbus == nil {
 		return nil, errors.New("modbus is required")
 	}
-	//TODO: Add TCP and RTU configuration validation
 	e := cfg.Modbus.Validate()
 	if e != nil {
 		return nil, fmt.Errorf("modbus: %v", e)
