@@ -5,15 +5,19 @@ import (
 	"go.viam.com/rdk/module"
 	viamutils "go.viam.com/utils"
 
-	modbus_board "viam-modbus/board"
+	"viam-modbus/board"
+	"viam-modbus/clientbridge"
 	common "viam-modbus/common"
-	modbus_sensor "viam-modbus/sensor"
+	"viam-modbus/sensor"
+	"viam-modbus/server"
 	"viam-modbus/serverbridge"
 )
 
 func main() {
-	moduleutils.AddModularResource(modbus_sensor.API, modbus_sensor.Model)
-	moduleutils.AddModularResource(modbus_board.API, modbus_board.Model)
+	moduleutils.AddModularResource(sensor.API, sensor.Model)
+	moduleutils.AddModularResource(board.API, board.Model)
 	moduleutils.AddModularResource(serverbridge.API, serverbridge.Model)
+	moduleutils.AddModularResource(server.API, server.Model)
+	moduleutils.AddModularResource(clientbridge.API, clientbridge.Model)
 	viamutils.ContextualMain(moduleutils.RunModule, module.NewLoggerFromArgs(common.LoggerName))
 }

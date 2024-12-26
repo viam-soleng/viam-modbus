@@ -1,5 +1,5 @@
-// Package serverbridge allows for multiple different modbus clients to be bridged together over different protocols.
-package serverbridge
+// Package server allows for multiple different modbus clients to be bridged together over different protocols.
+package server
 
 import (
 	"context"
@@ -28,7 +28,7 @@ type config = *modbusBridgeConfig
 var (
 	ErrNoDataDir = errors.New("no data directory")
 	API          = sensor.API
-	Model        = resource.NewModel("viam-soleng", "modbus", "server-bridge")
+	Model        = resource.NewModel("viam-soleng", "modbus", "server")
 	PrettyName   = "Modbus Server Bridge"
 )
 
@@ -68,7 +68,7 @@ type modbusBridge struct {
 	cancelFunc  context.CancelFunc
 	ctx         context.Context
 	handler     server.RequestHandler
-	servers     map[string]server.ModbusServer
+	server      server.ModbusServer
 	persistData bool
 	mu          sync.Mutex
 }
@@ -99,84 +99,40 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 			b.logger.Infof("Data loaded successfully")
 		}
 	}
-	servers := make(map[string]server.ModbusServer)
-	errs := make([]error, 0)
-	for _, endpoint := range conf.Servers {
-		if endpoint.IsSerial() {
-			u, e := url.Parse(endpoint.Endpoint)
-			if e != nil {
-				errs = append(errs, e)
-			} else {
-				serialConfig := &serial.Config{
-					Address:  u.Path,
-					BaudRate: int(endpoint.Speed),
-					DataBits: int(endpoint.DataBits),
-					StopBits: int(endpoint.StopBits),
-					Parity:   endpoint.Parity,
-				}
-				var server server.ModbusServer
-				if endpoint.IsRTU() {
-					server, err = rtu.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
-				} else {
-					server, err = ascii.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
-				}
-				if err != nil {
-					errs = append(errs, err)
-				} else {
-					servers[endpoint.Name] = server
-				}
-			}
-		} else if endpoint.IsNetwork() {
-			server, err := network.NewModbusServerWithHandler(b.logger.Desugar(), endpoint.Endpoint, b.handler)
-			if err != nil {
-				errs = append(errs, err)
-			} else {
-				servers[endpoint.Name] = server
-			}
+	endpoint := conf.Server
+	if endpoint.IsSerial() {
+		u, e := url.Parse(endpoint.Endpoint)
+		if e != nil {
+			return err
 		}
-	}
-	b.servers = servers
-	if len(errs) > 0 {
-		// If we had errors, we have to close servers that successfully opened because they may have acquired resources during construction.
-		b.closeServers()
-		return errors.Join(errs...)
-	}
-	return b.startServers()
-}
-
-func (b *modbusBridge) startServers() error {
-	b.logger.Infof("Starting %v servers", len(b.servers))
-	errs := make([]error, 0)
-	for _, s := range b.servers {
-		err := s.Start()
+		serialConfig := &serial.Config{
+			Address:  u.Path,
+			BaudRate: int(endpoint.Speed),
+			DataBits: int(endpoint.DataBits),
+			StopBits: int(endpoint.StopBits),
+			Parity:   endpoint.Parity,
+		}
+		if endpoint.IsRTU() {
+			b.server, err = rtu.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
+		} else {
+			b.server, err = ascii.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
+		}
 		if err != nil {
-			errs = append(errs, err)
+			return err
 		}
-	}
-	if len(errs) > 0 {
-		b.closeServers()
-	}
-	b.logger.Infof("Started %v servers with %v errors", len(b.servers), len(errs))
-	return errors.Join(errs...)
-}
-
-func (b *modbusBridge) closeServers() error {
-	b.logger.Infof("Stopping %v servers", len(b.servers))
-	errs := make([]error, 0)
-	for _, s := range b.servers {
-		err := s.Close()
+	} else if endpoint.IsNetwork() {
+		b.server, err = network.NewModbusServerWithHandler(b.logger.Desugar(), endpoint.Endpoint, b.handler)
 		if err != nil {
-			errs = append(errs, err)
+			return err
 		}
 	}
-	b.logger.Infof("Stopped %v servers with %v errors", len(b.servers), len(errs))
-	return errors.Join(errs...)
+	return b.server.Start()
 }
 
 func (b *modbusBridge) Close(ctx context.Context) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	err := b.closeServers()
+	err := b.server.Close()
 	if err != nil {
 		b.logger.Warnf("Failed to stop servers: %v", err)
 	}
@@ -213,33 +169,31 @@ func loadHandlerData(dataDir string, handler server.RequestHandler) error {
 
 func (b *modbusBridge) Readings(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
 	ret := make(map[string]interface{})
-	ret["ActiveServers"] = len(b.servers)
-	for serverName, server := range b.servers {
-		addStats(ret, serverName, server)
-	}
+	ret["ServerActive"] = b.server.IsRunning()
+	addStats(ret, b.server)
 
 	return ret, nil
 }
 
-func addStats(m map[string]interface{}, serverName string, server server.ModbusServer) {
+func addStats(m map[string]interface{}, server server.ModbusServer) {
 	statsMap := server.Stats().AsMap()
 	for k, v := range statsMap {
-		addStatKey(m, serverName, k, v)
+		addStatKey(m, k, v)
 	}
 
 }
 
-func addStatKey(m map[string]interface{}, serverName, statName string, stat interface{}) {
+func addStatKey(m map[string]interface{}, statName string, stat interface{}) {
 	switch v := stat.(type) {
 	case int, int32, int64, float32, float64, string, bool:
-		m[fmt.Sprintf("%s.%s", serverName, statName)] = v
+		m[statName] = v
 	case []error:
 		errStrings := make([]string, len(v))
 		for i, err := range v {
 			errStrings[i] = err.Error()
 		}
-		m[fmt.Sprintf("%s.%s", serverName, statName)] = strings.Join(errStrings, "\r\n")
+		m[statName] = strings.Join(errStrings, "\r\n")
 	default:
-		m[fmt.Sprintf("%s.%s", serverName, statName)] = fmt.Sprintf("%v", v)
+		m[statName] = fmt.Sprintf("%v", v)
 	}
 }
