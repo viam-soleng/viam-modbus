@@ -5,16 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/goburrow/serial"
 	"github.com/rinzlerlabs/gomodbus/server"
-	"github.com/rinzlerlabs/gomodbus/server/network"
-	"github.com/rinzlerlabs/gomodbus/server/serial/ascii"
-	"github.com/rinzlerlabs/gomodbus/server/serial/rtu"
 	"go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -102,37 +97,13 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 	servers := make(map[string]server.ModbusServer)
 	errs := make([]error, 0)
 	for _, endpoint := range conf.Servers {
-		if endpoint.IsSerial() {
-			u, e := url.Parse(endpoint.Endpoint)
-			if e != nil {
-				errs = append(errs, e)
-			} else {
-				serialConfig := &serial.Config{
-					Address:  u.Path,
-					BaudRate: int(endpoint.Speed),
-					DataBits: int(endpoint.DataBits),
-					StopBits: int(endpoint.StopBits),
-					Parity:   endpoint.Parity,
-				}
-				var server server.ModbusServer
-				if endpoint.IsRTU() {
-					server, err = rtu.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
-				} else {
-					server, err = ascii.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
-				}
-				if err != nil {
-					errs = append(errs, err)
-				} else {
-					servers[endpoint.Name] = server
-				}
-			}
-		} else if endpoint.IsNetwork() {
-			server, err := network.NewModbusServerWithHandler(b.logger.Desugar(), endpoint.Endpoint, b.handler)
-			if err != nil {
-				errs = append(errs, err)
-			} else {
-				servers[endpoint.Name] = server
-			}
+		server, err := common.NewModbusServerFromConfigWithHandler(b.logger, endpoint, b.handler)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if server != nil { // This probably isn't needed, but just in case
+			servers[endpoint.Name] = server
 		}
 	}
 	b.servers = servers
@@ -164,9 +135,11 @@ func (b *modbusBridge) closeServers() error {
 	b.logger.Infof("Stopping %v servers", len(b.servers))
 	errs := make([]error, 0)
 	for _, s := range b.servers {
-		err := s.Close()
-		if err != nil {
-			errs = append(errs, err)
+		if s != nil {
+			err := s.Close()
+			if err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 	b.logger.Infof("Stopped %v servers with %v errors", len(b.servers), len(errs))

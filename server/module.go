@@ -5,16 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/goburrow/serial"
 	"github.com/rinzlerlabs/gomodbus/server"
-	"github.com/rinzlerlabs/gomodbus/server/network"
-	"github.com/rinzlerlabs/gomodbus/server/serial/ascii"
-	"github.com/rinzlerlabs/gomodbus/server/serial/rtu"
 	"go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -99,33 +94,11 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 			b.logger.Infof("Data loaded successfully")
 		}
 	}
-	endpoint := conf.Server
-	if endpoint.IsSerial() {
-		u, e := url.Parse(endpoint.Endpoint)
-		if e != nil {
-			return err
-		}
-		serialConfig := &serial.Config{
-			Address:  u.Path,
-			BaudRate: int(endpoint.Speed),
-			DataBits: int(endpoint.DataBits),
-			StopBits: int(endpoint.StopBits),
-			Parity:   endpoint.Parity,
-		}
-		if endpoint.IsRTU() {
-			b.server, err = rtu.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
-		} else {
-			b.server, err = ascii.NewModbusServerWithHandler(b.logger.Desugar(), serialConfig, endpoint.ServerAddress, b.handler)
-		}
-		if err != nil {
-			return err
-		}
-	} else if endpoint.IsNetwork() {
-		b.server, err = network.NewModbusServerWithHandler(b.logger.Desugar(), endpoint.Endpoint, b.handler)
-		if err != nil {
-			return err
-		}
+	server, err := common.NewModbusServerFromConfigWithHandler(b.logger, conf.Server, b.handler)
+	if err != nil {
+		return err
 	}
+	b.server = server
 	return b.server.Start()
 }
 

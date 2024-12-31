@@ -8,8 +8,8 @@ import (
 )
 
 type modbusBridgeConfig struct {
-	Servers     []common.ModbusConfig `json:"servers"`
-	PersistData bool                  `json:"persist_data"`
+	Servers     []*common.ModbusConfig `json:"servers"`
+	PersistData bool                   `json:"persist_data"`
 }
 
 func (cfg *modbusBridgeConfig) Validate(path string) ([]string, error) {

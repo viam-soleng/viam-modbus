@@ -8,9 +8,9 @@ import (
 )
 
 type modbusBridgeConfig struct {
-	Endpoints    []common.ModbusConfig `json:"endpoints"`
-	UpdateTimeMs uint                  `json:"update_time_ms"`
-	Blocks       []modbusBlock         `json:"blocks"`
+	Endpoints    []*common.ModbusConfig `json:"endpoints"`
+	UpdateTimeMs uint                   `json:"update_time_ms"`
+	Blocks       []modbusBlock          `json:"blocks"`
 }
 
 type modbusBlock struct {
@@ -54,6 +54,24 @@ func (cfg *modbusBridgeConfig) Validate(path string) ([]string, error) {
 		}
 		if !IsIn(block.Dst, endpointNames) {
 			return nil, fmt.Errorf("dst %v not found in endpoints", block.Dst)
+		}
+		if block.SrcRegister == "" {
+			return nil, fmt.Errorf("src_register is required in block %v", i)
+		}
+		if block.DstRegister == "" {
+			return nil, fmt.Errorf("dst_register is required in block %v", i)
+		}
+		if block.SrcRegister == "coils" && block.DstRegister != "coils" {
+			return nil, fmt.Errorf("src_register is coils, dst_register must be coils in block %v", i)
+		}
+		if block.SrcRegister == "discrete_inputs" && block.DstRegister != "coils" {
+			return nil, fmt.Errorf("src_register is discrete_inputs, dst_register must be coils in block %v", i)
+		}
+		if block.SrcRegister == "holding_registers" && block.DstRegister != "holding_registers" {
+			return nil, fmt.Errorf("src_register is holding_registers, dst_register must be holding_registers in block %v", i)
+		}
+		if block.SrcRegister == "input_registers" && block.DstRegister != "holding_registers" {
+			return nil, fmt.Errorf("src_register is input_registers, dst_register must be holding_registers in block %v", i)
 		}
 		if block.SrcOffset < 0 {
 			return nil, fmt.Errorf("src_offset must be non-negative in block %v", i)

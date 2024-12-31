@@ -2,16 +2,11 @@
 package common
 
 import (
-	"errors"
 	"math"
 	"sync"
-	"time"
 
-	"github.com/goburrow/serial"
 	"github.com/rinzlerlabs/gomodbus/client"
-	"github.com/rinzlerlabs/gomodbus/client/network"
-	"github.com/rinzlerlabs/gomodbus/client/serial/ascii"
-	"github.com/rinzlerlabs/gomodbus/client/serial/rtu"
+	"go.uber.org/zap"
 	"go.viam.com/rdk/logging"
 )
 
@@ -63,31 +58,14 @@ func (r *ViamModbusClient) initializeModbusClient() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.modbusClient != nil {
-		_ = r.modbusClient.Close()
+		err := r.modbusClient.Close()
+		if err != nil {
+			r.logger.Error("failed to close modbus client", zap.Error(err))
+		}
 	}
 
-	var client client.ModbusClient
-	var err error
-	if r.conf.IsSerial() {
-		serialConfig := &serial.Config{
-			Address:  r.conf.Endpoint,
-			BaudRate: int(r.conf.Speed),
-			DataBits: int(r.conf.DataBits),
-			StopBits: int(r.conf.StopBits),
-			Parity:   r.conf.Parity,
-		}
-		if r.conf.IsRTU() {
-			client, err = rtu.NewModbusClient(r.logger.AsZap().Desugar(), serialConfig, 1*time.Second)
-		} else {
-			client, err = ascii.NewModbusClient(r.logger.AsZap().Desugar(), serialConfig, 1*time.Second)
-		}
-	} else if r.conf.IsNetwork() {
-		client, err = network.NewModbusClient(r.logger.AsZap().Desugar(), r.conf.Endpoint, 1*time.Second)
-	} else {
-		return errors.New("invalid config")
-	}
+	client, err := NewModbusClientFromConfig(r.logger, r.conf)
 	if err != nil {
-		r.logger.Errorf("Failed to initialize modbus client: %#v", err)
 		return err
 	}
 	r.modbusClient = client

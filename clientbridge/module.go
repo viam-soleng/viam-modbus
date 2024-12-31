@@ -4,15 +4,10 @@ package clientbridge
 import (
 	"context"
 	"errors"
-	"net/url"
 	"sync"
 	"time"
 
-	sp "github.com/goburrow/serial"
 	"github.com/rinzlerlabs/gomodbus/client"
-	"github.com/rinzlerlabs/gomodbus/client/network"
-	"github.com/rinzlerlabs/gomodbus/client/serial/ascii"
-	"github.com/rinzlerlabs/gomodbus/client/serial/rtu"
 	"go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -80,38 +75,11 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 	clients := make(map[string]*addressableClient)
 	errs := make([]error, 0)
 	for _, endpoint := range conf.Endpoints {
-		if endpoint.IsSerial() {
-			u, err := url.Parse(endpoint.Endpoint)
-			if err != nil {
-				errs = append(errs, err)
-			} else {
-				serialConfig := &sp.Config{
-					Address:  u.Path,
-					BaudRate: int(endpoint.Speed),
-					DataBits: int(endpoint.DataBits),
-					StopBits: int(endpoint.StopBits),
-					Parity:   endpoint.Parity,
-				}
-
-				var client client.ModbusClient
-				if endpoint.IsRTU() {
-					client, err = rtu.NewModbusClient(b.logger.Desugar(), serialConfig, 1*time.Second)
-				} else {
-					client, err = ascii.NewModbusClient(b.logger.Desugar(), serialConfig, 1*time.Second)
-				}
-				if err != nil {
-					errs = append(errs, err)
-				} else {
-					clients[endpoint.Name] = &addressableClient{client, endpoint.ServerAddress}
-				}
-			}
-		} else if endpoint.IsNetwork() {
-			client, err := network.NewModbusClient(b.logger.Desugar(), endpoint.Endpoint, 1*time.Second)
-			if err != nil {
-				errs = append(errs, err)
-			} else {
-				clients[endpoint.Name] = &addressableClient{client, endpoint.ServerAddress}
-			}
+		client, err := common.NewModbusClientFromConfig(b.logger, endpoint)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			clients[endpoint.Name] = &addressableClient{client, endpoint.ServerAddress}
 		}
 	}
 

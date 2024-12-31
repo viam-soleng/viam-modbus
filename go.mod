@@ -3,9 +3,9 @@ module viam-modbus
 go 1.23.3
 
 require (
-	github.com/goburrow/serial v0.1.0
-	github.com/rinzlerlabs/gomodbus v0.0.3
+	github.com/rinzlerlabs/gomodbus v0.0.4-0.20241231191731-065699d75b6d
 	github.com/thegreatco/viamutils v0.0.2
+	go.uber.org/zap v1.27.0
 	go.viam.com/api v0.1.351
 	go.viam.com/rdk v0.47.2
 	go.viam.com/utils v0.1.108
@@ -49,6 +49,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-pdf/fpdf v0.6.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.1.0 // indirect
+	github.com/goburrow/serial v0.1.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
@@ -123,7 +124,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.31.0 // indirect
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.27.0 // indirect
 	go.viam.com/test v1.2.3 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
