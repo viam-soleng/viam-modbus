@@ -1,4 +1,4 @@
-package modbus_board
+package board
 
 import (
 	"errors"
@@ -7,26 +7,26 @@ import (
 	"viam-modbus/common"
 )
 
-type ModbusBoardCloudConfig struct {
-	Modbus     *common.ModbusClientConfig   `json:"modbus"`
-	GpioPins   []ModbusGpioPinCloudConfig   `json:"gpio_pins"`
-	AnalogPins []ModbusAnalogPinCloudConfig `json:"analog_pins"`
+type modbusBoardCloudConfig struct {
+	Modbus     *common.ModbusConfig         `json:"modbus"`
+	GpioPins   []modbusGpioPinCloudConfig   `json:"gpio_pins"`
+	AnalogPins []modbusAnalogPinCloudConfig `json:"analog_pins"`
 }
 
-type ModbusGpioPinCloudConfig struct {
+type modbusGpioPinCloudConfig struct {
 	Offset  int    `json:"offset"`
 	Name    string `json:"name"`
 	PinType string `json:"pin_type"`
 }
 
-type ModbusAnalogPinCloudConfig struct {
+type modbusAnalogPinCloudConfig struct {
 	Offset   int    `json:"offset"`
 	Name     string `json:"name"`
 	PinType  string `json:"pin_type"`
 	DataType string `json:"data_type"`
 }
 
-func (cfg *ModbusBoardCloudConfig) Validate(path string) ([]string, error) {
+func (cfg *modbusBoardCloudConfig) Validate(path string) ([]string, error) {
 	if cfg.Modbus == nil {
 		return nil, errors.New("modbus is required")
 	}
@@ -43,8 +43,8 @@ func (cfg *ModbusBoardCloudConfig) Validate(path string) ([]string, error) {
 			if pin.PinType == "" {
 				return nil, fmt.Errorf("type is required in pin %v", pin.Name)
 			}
-			if p := common.NewPinType(pin.PinType); p == common.UNKNOWN {
-				return nil, fmt.Errorf("type must be %v or %v in pin %v", common.OUTPUT_PIN, common.INPUT_PIN, pin.Name)
+			if p := common.NewPinType(pin.PinType); p == common.Unknown {
+				return nil, fmt.Errorf("type must be %v or %v in pin %v", common.OutputPin, common.InputPin, pin.Name)
 			}
 			if pin.Offset < 0 {
 				return nil, fmt.Errorf("offset must be non-negative in pin %v", pin.Name)
@@ -60,8 +60,8 @@ func (cfg *ModbusBoardCloudConfig) Validate(path string) ([]string, error) {
 			if pin.PinType == "" {
 				return nil, fmt.Errorf("type is required in pin %v", pin.Name)
 			}
-			if p := common.NewPinType(pin.PinType); p == common.UNKNOWN {
-				return nil, fmt.Errorf("type must be %v or %v in pin %v", common.OUTPUT_PIN, common.INPUT_PIN, pin.Name)
+			if p := common.NewPinType(pin.PinType); p == common.Unknown {
+				return nil, fmt.Errorf("type must be %v or %v in pin %v", common.OutputPin, common.InputPin, pin.Name)
 			}
 			if pin.Offset < 0 {
 				return nil, fmt.Errorf("offset must be non-negative in pin %v", pin.Name)

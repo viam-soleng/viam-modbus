@@ -1,7 +1,7 @@
 BIN_PATH=bin
 BIN_NAME=viam-modbus
 ENTRY_POINT=main.go
-VERSION_PATH=utils/utils.go
+VERSION_PATH=common/utils.go
 PLATFORM=$(shell uname -s | tr '[:upper:]' '[:lower:]')/$(shell uname -m | sed 's/aarch64/arm64/')
 
 BIN=$(BIN_PATH)/$(BIN_NAME)
@@ -30,7 +30,7 @@ clean-bin:
 	rm -rf $(BIN_PATH)
 
 package: clean-package build
-	tar -czf $(PACKAGE_NAME) $(BIN)
+	tar -czf $(PACKAGE_NAME) $(BIN) meta.json
 
 upload: package
 	$(info PLATFORM is $(PLATFORM))
