@@ -3,7 +3,7 @@ module viam-modbus
 go 1.23.3
 
 require (
-	github.com/rinzlerlabs/gomodbus v0.0.4-0.20241231191731-065699d75b6d
+	github.com/rinzlerlabs/gomodbus v0.0.4-0.20250102192958-d8b5577229ba
 	github.com/thegreatco/viamutils v0.0.2
 	go.uber.org/zap v1.27.0
 	go.viam.com/api v0.1.351

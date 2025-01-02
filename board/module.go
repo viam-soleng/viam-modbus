@@ -52,7 +52,7 @@ func NewModbusBoard(ctx context.Context, deps resource.Dependencies, conf resour
 
 type ModbusBoard struct {
 	resource.Named
-	client     *common.ViamModbusClient
+	client     *common.ViamModbusClientWithRetry
 	mu         sync.RWMutex
 	logger     logging.Logger
 	cancelFunc context.CancelFunc

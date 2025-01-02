@@ -134,10 +134,12 @@ func (b *modbusBridge) startServers() error {
 func (b *modbusBridge) closeServers() error {
 	b.logger.Infof("Stopping %v servers", len(b.servers))
 	errs := make([]error, 0)
-	for _, s := range b.servers {
+	for n, s := range b.servers {
+		b.logger.Infof("Stopping server %v", n)
 		if s != nil {
 			err := s.Close()
 			if err != nil {
+				b.logger.Errorf("Failed to stop server %v: %v", n, err)
 				errs = append(errs, err)
 			}
 		}
@@ -147,6 +149,7 @@ func (b *modbusBridge) closeServers() error {
 }
 
 func (b *modbusBridge) Close(ctx context.Context) error {
+	b.logger.Infof("Stopping %v Component %v", PrettyName, common.Version)
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	err := b.closeServers()

@@ -2,10 +2,22 @@
 package common
 
 import (
+	"errors"
 	"math"
+	"net/url"
 	"sync"
+	"time"
 
-	"github.com/rinzlerlabs/gomodbus/client"
+	client "github.com/rinzlerlabs/gomodbus/client"
+	network_client "github.com/rinzlerlabs/gomodbus/client/network"
+	ascii_client "github.com/rinzlerlabs/gomodbus/client/serial/ascii"
+	rtu_client "github.com/rinzlerlabs/gomodbus/client/serial/rtu"
+	server "github.com/rinzlerlabs/gomodbus/server"
+	network_server "github.com/rinzlerlabs/gomodbus/server/network"
+	ascii_server "github.com/rinzlerlabs/gomodbus/server/serial/ascii"
+	rtu_server "github.com/rinzlerlabs/gomodbus/server/serial/rtu"
+	network_settings "github.com/rinzlerlabs/gomodbus/settings/network"
+	serial_settings "github.com/rinzlerlabs/gomodbus/settings/serial"
 	"go.uber.org/zap"
 	"go.viam.com/rdk/logging"
 )
@@ -23,7 +35,123 @@ const (
 	InputRegister   RegisterType = 1
 )
 
-type ViamModbusClient struct {
+func NewModbusClientFromConfig(logger logging.Logger, conf *ModbusConfig) (client.ModbusClient, error) {
+	endpoint, err := url.Parse(conf.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	if conf.IsSerial() {
+		settings := &serial_settings.ClientSettings{
+			SerialSettings: serial_settings.SerialSettings{
+				Device:   endpoint.Path,
+				Baud:     int(conf.Speed),
+				DataBits: int(conf.DataBits),
+				Parity:   conf.Parity,
+				StopBits: int(conf.StopBits),
+			},
+			ResponseTimeout: 1 * time.Second,
+		}
+		if conf.IsRTU() {
+			client, err := rtu_client.NewModbusClientFromSettings(logger.AsZap().Desugar(), settings)
+			if err != nil {
+				return nil, errors.Join(err, ErrFailedToCreateClient)
+			}
+			return client, nil
+		} else {
+			client, err := ascii_client.NewModbusClientFromSettings(logger.AsZap().Desugar(), settings)
+			if err != nil {
+				return nil, errors.Join(err, ErrFailedToCreateClient)
+			}
+			return client, nil
+		}
+	} else if conf.IsNetwork() {
+		settings := &network_settings.ClientSettings{
+			NetworkSettings: network_settings.NetworkSettings{
+				Endpoint:  endpoint,
+				KeepAlive: 30 * time.Second,
+			},
+			ResponseTimeout: 1 * time.Second,
+			DialTimeout:     1 * time.Second,
+		}
+		client, err := network_client.NewModbusClientFromSettings(logger.AsZap().Desugar(), settings)
+		if err != nil {
+			return nil, errors.Join(err, ErrFailedToCreateClient)
+		}
+		return client, nil
+	} else {
+		return nil, ErrInvalidConfig
+	}
+}
+
+func NewModbusServerFromConfigWithHandler(logger logging.Logger, conf *ModbusConfig, handler server.RequestHandler) (server.ModbusServer, error) {
+	u, err := url.Parse(conf.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	if conf.IsSerial() {
+		settings := &serial_settings.ServerSettings{
+			SerialSettings: serial_settings.SerialSettings{
+				Device:   u.Path,
+				Baud:     int(conf.Speed),
+				DataBits: int(conf.DataBits),
+				Parity:   conf.Parity,
+				StopBits: int(conf.StopBits),
+			},
+			Address: conf.ServerAddress,
+		}
+		if conf.IsRTU() {
+			var server server.ModbusServer
+			var err error
+			if handler != nil {
+				server, err = rtu_server.NewModbusServerWithHandler(logger.Desugar(), settings, handler)
+			} else {
+				server, err = rtu_server.NewModbusServerFromSettings(logger.Desugar(), settings)
+			}
+			if err != nil {
+				return nil, errors.Join(err, ErrFailedToCreateServer)
+			}
+			return server, nil
+		} else {
+			var server server.ModbusServer
+			var err error
+			if handler != nil {
+				server, err = ascii_server.NewModbusServerWithHandler(logger.Desugar(), settings, handler)
+			} else {
+				server, err = ascii_server.NewModbusServerFromSettings(logger.Desugar(), settings)
+			}
+			if err != nil {
+				return nil, errors.Join(err, ErrFailedToCreateServer)
+			}
+			return server, nil
+		}
+	} else if conf.IsNetwork() {
+		settings := &network_settings.ServerSettings{
+			NetworkSettings: network_settings.NetworkSettings{
+				Endpoint:  u,
+				KeepAlive: 30 * time.Second,
+			},
+		}
+		var server server.ModbusServer
+		var err error
+		if handler != nil {
+			server, err = network_server.NewModbusServerWithHandler(logger.Desugar(), settings, handler)
+		} else {
+			server, err = network_server.NewModbusServerFromSettings(logger.Desugar(), settings)
+		}
+		if err != nil {
+			return nil, errors.Join(err, ErrFailedToCreateServer)
+		}
+		return server, nil
+	} else {
+		return nil, ErrInvalidConfig
+	}
+}
+
+func NewModbusServerFromConfig(conf *ModbusConfig, logger logging.Logger) (server.ModbusServer, error) {
+	return NewModbusServerFromConfigWithHandler(logger, conf, nil)
+}
+
+type ViamModbusClientWithRetry struct {
 	mu            sync.RWMutex
 	logger        logging.Logger
 	conf          *ModbusConfig
@@ -31,8 +159,8 @@ type ViamModbusClient struct {
 	serverAddress uint16
 }
 
-func NewModbusClient(logger logging.Logger, conf *ModbusConfig) (*ViamModbusClient, error) {
-	client := &ViamModbusClient{
+func NewModbusClient(logger logging.Logger, conf *ModbusConfig) (*ViamModbusClientWithRetry, error) {
+	client := &ViamModbusClientWithRetry{
 		logger: logger,
 	}
 	err := client.initializeModbusClient()
@@ -42,19 +170,19 @@ func NewModbusClient(logger logging.Logger, conf *ModbusConfig) (*ViamModbusClie
 	return client, nil
 }
 
-func (r *ViamModbusClient) Close() error {
+func (r *ViamModbusClientWithRetry) Close() error {
 	if r.modbusClient != nil {
 		r.modbusClient.Close()
 	}
 	return nil
 }
 
-func (r *ViamModbusClient) reinitializeModbusClient() error {
+func (r *ViamModbusClientWithRetry) reinitializeModbusClient() error {
 	r.logger.Warnf("Re-initializing modbus client")
 	return r.initializeModbusClient()
 }
 
-func (r *ViamModbusClient) initializeModbusClient() error {
+func (r *ViamModbusClientWithRetry) initializeModbusClient() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if r.modbusClient != nil {
@@ -72,7 +200,7 @@ func (r *ViamModbusClient) initializeModbusClient() error {
 	return nil
 }
 
-func (r *ViamModbusClient) ReadCoils(offset, length uint16) ([]bool, error) {
+func (r *ViamModbusClientWithRetry) ReadCoils(offset, length uint16) ([]bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -90,7 +218,7 @@ func (r *ViamModbusClient) ReadCoils(offset, length uint16) ([]bool, error) {
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ViamModbusClient) ReadCoil(offset uint16) (bool, error) {
+func (r *ViamModbusClientWithRetry) ReadCoil(offset uint16) (bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -108,7 +236,7 @@ func (r *ViamModbusClient) ReadCoil(offset uint16) (bool, error) {
 	return false, ErrRetriesExhausted
 }
 
-func (r *ViamModbusClient) ReadDiscreteInputs(offset, length uint16) ([]bool, error) {
+func (r *ViamModbusClientWithRetry) ReadDiscreteInputs(offset, length uint16) ([]bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -126,7 +254,7 @@ func (r *ViamModbusClient) ReadDiscreteInputs(offset, length uint16) ([]bool, er
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ViamModbusClient) ReadDiscreteInput(offset uint16) (bool, error) {
+func (r *ViamModbusClientWithRetry) ReadDiscreteInput(offset uint16) (bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -144,7 +272,7 @@ func (r *ViamModbusClient) ReadDiscreteInput(offset uint16) (bool, error) {
 	return false, ErrRetriesExhausted
 }
 
-func (r *ViamModbusClient) WriteCoil(offset uint16, value bool) error {
+func (r *ViamModbusClientWithRetry) WriteCoil(offset uint16, value bool) error {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -162,7 +290,7 @@ func (r *ViamModbusClient) WriteCoil(offset uint16, value bool) error {
 	return ErrRetriesExhausted
 }
 
-func (r *ViamModbusClient) ReadHoldingRegisters(offset, length uint16) ([]uint16, error) {
+func (r *ViamModbusClientWithRetry) ReadHoldingRegisters(offset, length uint16) ([]uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -180,7 +308,7 @@ func (r *ViamModbusClient) ReadHoldingRegisters(offset, length uint16) ([]uint16
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ViamModbusClient) ReadInputRegisters(offset, length uint16) ([]uint16, error) {
+func (r *ViamModbusClientWithRetry) ReadInputRegisters(offset, length uint16) ([]uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -199,7 +327,7 @@ func (r *ViamModbusClient) ReadInputRegisters(offset, length uint16) ([]uint16, 
 }
 
 // TODO: merge this with executeOperationWithRetry
-func (r *ViamModbusClient) rawRead(offset, len uint16, regType RegisterType) ([]uint16, error) {
+func (r *ViamModbusClientWithRetry) rawRead(offset, len uint16, regType RegisterType) ([]uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -225,7 +353,7 @@ func (r *ViamModbusClient) rawRead(offset, len uint16, regType RegisterType) ([]
 	return nil, ErrRetriesExhausted
 }
 
-func (r *ViamModbusClient) ReadInt8(offset uint16, regType RegisterType) (int8, error) {
+func (r *ViamModbusClientWithRetry) ReadInt8(offset uint16, regType RegisterType) (int8, error) {
 	b, err := r.rawRead(offset, 1, regType)
 	if err != nil {
 		return 0, err
@@ -234,7 +362,7 @@ func (r *ViamModbusClient) ReadInt8(offset uint16, regType RegisterType) (int8, 
 	}
 }
 
-func (r *ViamModbusClient) ReadUInt8(offset uint16, regType RegisterType) (uint8, error) {
+func (r *ViamModbusClientWithRetry) ReadUInt8(offset uint16, regType RegisterType) (uint8, error) {
 	b, err := r.rawRead(offset, 1, regType)
 	if err != nil {
 		return 0, err
@@ -243,7 +371,7 @@ func (r *ViamModbusClient) ReadUInt8(offset uint16, regType RegisterType) (uint8
 	}
 }
 
-func (r *ViamModbusClient) ReadInt16(offset uint16, regType RegisterType) (int16, error) {
+func (r *ViamModbusClientWithRetry) ReadInt16(offset uint16, regType RegisterType) (int16, error) {
 	b, err := r.rawRead(offset, 1, regType)
 	if err != nil {
 		return 0, err
@@ -252,7 +380,7 @@ func (r *ViamModbusClient) ReadInt16(offset uint16, regType RegisterType) (int16
 	}
 }
 
-func (r *ViamModbusClient) ReadUInt16(offset uint16, regType RegisterType) (uint16, error) {
+func (r *ViamModbusClientWithRetry) ReadUInt16(offset uint16, regType RegisterType) (uint16, error) {
 	b, err := r.rawRead(offset, 1, regType)
 	if err != nil {
 		return 0, err
@@ -261,7 +389,7 @@ func (r *ViamModbusClient) ReadUInt16(offset uint16, regType RegisterType) (uint
 	}
 }
 
-func (r *ViamModbusClient) ReadInt32(offset uint16, regType RegisterType) (int32, error) {
+func (r *ViamModbusClientWithRetry) ReadInt32(offset uint16, regType RegisterType) (int32, error) {
 	b, err := r.rawRead(offset, 2, regType)
 	if err != nil {
 		return 0, err
@@ -271,7 +399,7 @@ func (r *ViamModbusClient) ReadInt32(offset uint16, regType RegisterType) (int32
 	}
 }
 
-func (r *ViamModbusClient) ReadUInt32(offset uint16, regType RegisterType) (uint32, error) {
+func (r *ViamModbusClientWithRetry) ReadUInt32(offset uint16, regType RegisterType) (uint32, error) {
 	b, err := r.rawRead(offset, 2, regType)
 	if err != nil {
 		return 0, err
@@ -281,7 +409,7 @@ func (r *ViamModbusClient) ReadUInt32(offset uint16, regType RegisterType) (uint
 	}
 }
 
-func (r *ViamModbusClient) ReadInt64(offset uint16, regType RegisterType) (int64, error) {
+func (r *ViamModbusClientWithRetry) ReadInt64(offset uint16, regType RegisterType) (int64, error) {
 	b, err := r.rawRead(offset, 4, regType)
 	if err != nil {
 		return 0, err
@@ -291,7 +419,7 @@ func (r *ViamModbusClient) ReadInt64(offset uint16, regType RegisterType) (int64
 	}
 }
 
-func (r *ViamModbusClient) ReadUInt64(offset uint16, regType RegisterType) (uint64, error) {
+func (r *ViamModbusClientWithRetry) ReadUInt64(offset uint16, regType RegisterType) (uint64, error) {
 	b, err := r.rawRead(offset, 4, regType)
 	if err != nil {
 		return 0, err
@@ -301,7 +429,7 @@ func (r *ViamModbusClient) ReadUInt64(offset uint16, regType RegisterType) (uint
 	}
 }
 
-func (r *ViamModbusClient) ReadFloat32(offset uint16, regType RegisterType) (float32, error) {
+func (r *ViamModbusClientWithRetry) ReadFloat32(offset uint16, regType RegisterType) (float32, error) {
 	b, err := r.rawRead(offset, 4, regType)
 	if err != nil {
 		return 0, err
@@ -311,7 +439,7 @@ func (r *ViamModbusClient) ReadFloat32(offset uint16, regType RegisterType) (flo
 	}
 }
 
-func (r *ViamModbusClient) ReadFloat64(offset uint16, regType RegisterType) (float64, error) {
+func (r *ViamModbusClientWithRetry) ReadFloat64(offset uint16, regType RegisterType) (float64, error) {
 	b, err := r.rawRead(offset, 8, regType)
 	if err != nil {
 		return 0, err
@@ -321,32 +449,32 @@ func (r *ViamModbusClient) ReadFloat64(offset uint16, regType RegisterType) (flo
 	}
 }
 
-func (r *ViamModbusClient) WriteInt8(offset uint16, value int8) error {
+func (r *ViamModbusClientWithRetry) WriteInt8(offset uint16, value int8) error {
 	return r.WriteUInt8(offset, uint8(value))
 }
 
-func (r *ViamModbusClient) WriteUInt8(offset uint16, value uint8) error {
+func (r *ViamModbusClientWithRetry) WriteUInt8(offset uint16, value uint8) error {
 	regValue := uint16(value)
 	return r.executeOperationWithRetry(func() error {
 		return r.modbusClient.WriteMultipleRegisters(r.serverAddress, offset, []uint16{regValue})
 	})
 }
 
-func (r *ViamModbusClient) WriteInt16(offset uint16, value int16) error {
+func (r *ViamModbusClientWithRetry) WriteInt16(offset uint16, value int16) error {
 	return r.WriteUInt16(offset, uint16(value))
 }
 
-func (r *ViamModbusClient) WriteUInt16(offset uint16, value uint16) error {
+func (r *ViamModbusClientWithRetry) WriteUInt16(offset uint16, value uint16) error {
 	return r.executeOperationWithRetry(func() error {
 		return r.modbusClient.WriteMultipleRegisters(r.serverAddress, offset, []uint16{value})
 	})
 }
 
-func (r *ViamModbusClient) WriteInt32(offset uint16, value int32) error {
+func (r *ViamModbusClientWithRetry) WriteInt32(offset uint16, value int32) error {
 	return r.WriteUInt32(offset, uint32(value))
 }
 
-func (r *ViamModbusClient) WriteUInt32(offset uint16, value uint32) error {
+func (r *ViamModbusClientWithRetry) WriteUInt32(offset uint16, value uint32) error {
 	regValues := []uint16{
 		uint16(value >> 16),
 		uint16(value & 0xFFFF),
@@ -356,11 +484,11 @@ func (r *ViamModbusClient) WriteUInt32(offset uint16, value uint32) error {
 	})
 }
 
-func (r *ViamModbusClient) WriteInt64(offset uint16, value int64) error {
+func (r *ViamModbusClientWithRetry) WriteInt64(offset uint16, value int64) error {
 	return r.WriteUInt64(offset, uint64(value))
 }
 
-func (r *ViamModbusClient) WriteUInt64(offset uint16, value uint64) error {
+func (r *ViamModbusClientWithRetry) WriteUInt64(offset uint16, value uint64) error {
 	regValues := []uint16{
 		uint16(value >> 48),
 		uint16(value >> 32),
@@ -372,7 +500,7 @@ func (r *ViamModbusClient) WriteUInt64(offset uint16, value uint64) error {
 	})
 }
 
-func (r *ViamModbusClient) WriteFloat32(offset uint16, value float32) error {
+func (r *ViamModbusClientWithRetry) WriteFloat32(offset uint16, value float32) error {
 	rawValue := math.Float32bits(value)
 	regValue := []uint16{
 		uint16(rawValue >> 16),
@@ -383,7 +511,7 @@ func (r *ViamModbusClient) WriteFloat32(offset uint16, value float32) error {
 	})
 }
 
-func (r *ViamModbusClient) WriteFloat64(offset uint16, value float64) error {
+func (r *ViamModbusClientWithRetry) WriteFloat64(offset uint16, value float64) error {
 	rawValue := math.Float64bits(value)
 	regValues := []uint16{
 		uint16(rawValue >> 48),
@@ -396,7 +524,7 @@ func (r *ViamModbusClient) WriteFloat64(offset uint16, value float64) error {
 	})
 }
 
-func (r *ViamModbusClient) executeOperationWithRetry(o func() error) error {
+func (r *ViamModbusClientWithRetry) executeOperationWithRetry(o func() error) error {
 	availableRetries := 3
 
 	for availableRetries > 0 {

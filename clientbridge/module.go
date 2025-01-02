@@ -36,17 +36,17 @@ func init() {
 }
 
 func NewModbusBridge(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (resourceType, error) {
-	logger.Infof("Starting Modbus Board Component %v", common.Version)
+	logger.Infof("Starting %v Component %v", PrettyName, common.Version)
 	b := modbusBridge{
 		Named:  conf.ResourceName().AsNamed(),
 		logger: logger,
 	}
 
 	if err := b.Reconfigure(ctx, deps, conf); err != nil {
-		logger.Errorf("Failed to start Modbus Board Component %v", err)
+		logger.Errorf("Failed to start %v Component %v", PrettyName, err)
 		return nil, err
 	}
-	logger.Info("Modbus Board Component started successfully")
+	logger.Infof("%v started successfully", PrettyName)
 	return &b, nil
 }
 
@@ -118,9 +118,9 @@ func (b *modbusBridge) Reconfigure(ctx context.Context, deps resource.Dependenci
 		w := newModbusClientBridge(b.logger, b.clients[block.Src], b.clients[block.Dst], block, sleepTime)
 		workers = append(workers, w.Start)
 	}
-
+	b.logger.Infof("Starting %v workers", len(workers))
 	b.workers = utils.NewBackgroundStoppableWorkers(workers...)
-
+	b.logger.Infof("Reconfigured %v Component %v", PrettyName, common.Version)
 	return nil
 }
 
@@ -133,13 +133,17 @@ func (b *modbusBridge) close() error {
 }
 
 func (b *modbusBridge) Close(ctx context.Context) error {
+	b.logger.Infof("Closing %s Component", PrettyName)
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	b.logger.Infof("Closing %s Component", PrettyName)
+	b.logger.Debug("Stopping workers")
 	b.workers.Stop()
+	b.logger.Debug("Workers stopped, closing clients")
 	if err := b.close(); err != nil {
 		b.logger.Errorf("Failed to close %s Component: %v", PrettyName, err)
+		return err
 	}
+	b.logger.Infof("Closed %s Component", PrettyName)
 	return nil
 }
 
@@ -182,8 +186,12 @@ func (b *modbusClientBridge) Start(ctx context.Context) {
 		b.logger.Warn("Context is nil")
 		return
 	}
-	b.logger.Info("Starting bridge Worker Src: %s Dst: %s", b.block.Src, b.block.Dst)
+	b.logger.Infof("Starting bridge Worker Src: %s Dst: %s", b.block.Src, b.block.Dst)
 	for {
+		if ctx.Err() != nil {
+			b.logger.Info("Context indicates error")
+			return
+		}
 		select {
 		case <-ctx.Done():
 			return
@@ -194,7 +202,7 @@ func (b *modbusClientBridge) Start(ctx context.Context) {
 }
 
 func (b *modbusClientBridge) iterate() {
-	b.logger.Info("Starting iteration")
+	b.logger.Debug("Running iteration")
 	block := b.block
 	switch block.SrcRegister {
 	case "coils":

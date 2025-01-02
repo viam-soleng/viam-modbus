@@ -56,7 +56,7 @@ type ModbusSensor struct {
 	logger     logging.Logger
 	cancelFunc context.CancelFunc
 	ctx        context.Context
-	client     *common.ViamModbusClient
+	client     *common.ViamModbusClientWithRetry
 	blocks     []modbusBlocks
 }
 
