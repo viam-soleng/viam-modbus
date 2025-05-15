@@ -59,6 +59,15 @@ type ModbusSensor struct {
 	blocks     []ModbusBlocks
 }
 
+// Validate ensures all parts of the config are valid and important fields exist.
+// Returns implicit dependencies based on the config.
+// The path is the JSON path in your robot's config (not the `Config` struct) to the
+// resource being validated; e.g. "components.0".
+func (r *ModbusSensor) Validate(path string) ([]string, error) {
+	// Add config validation code here
+	return nil, nil
+}
+
 // Returns modbus register values
 func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
 	r.mu.RLock()
