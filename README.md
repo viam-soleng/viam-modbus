@@ -16,9 +16,8 @@ The Viam Modbus module enables seamless communication between devices by acting 
 - **Device Control:** Enables the reading of writing of coils and registers onto a Modbus Server.
 - **Configurable Parameters:** Offers customization options for the device address, word_order, endianness, timeouts, pin types, data types and more.
 
-
-
 ## Modbus Client Configuration
+
 > [!NOTE]  
 > Serial/RTU client not yet published to registry!
 
@@ -37,11 +36,11 @@ There are two configuration areas. The `modbus`config path applies to both, the 
   }
 ```
 
-**TCP Client Configuration Attributes**
+#### TCP Client Configuration Attributes
 
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
-| `url` | string | **Required** | TCP Config: `"tcp://<ip address>:port"`|
+| `url`   | string | **Required** | TCP Config: `"tcp://<ip address>:port"`|
 | `timeout_ms` | string | Optional     | Connection timeout |
 | `endianness` | string | Optional     |       |
 | `word_order` | string | Optional     |       |
@@ -60,11 +59,11 @@ Add this to your modbus board or sensor component to configure the modbus client
   }
 ```
 
-**Serial Client Configuration Attributes**
+#### Serial Client Configuration Attributes
 
 | Name    | Type   | Inclusion    | Description |
 | ------- | ------ | ------------ | ----------- |
-| `url` | string | **Required** | Serial Config: `"rtu://<serial device path>"`|
+| `url` | string | **Required** | Serial Config: `"rtu://<serial device path>"` |
 | `speed` | string | **Required** | Bit (bit/s) |
 | `data_bits` | uint | Optional |  |
 | `parity` | uint | Optional |  |
@@ -75,7 +74,7 @@ Add this to your modbus board or sensor component to configure the modbus client
 
 ## Modbus Sensor Configuration
 
-The modbus sensor component allows you to read and reord modbus register values.
+The modbus sensor component allows you to read and record modbus register values.
 
 ### Sensor Component Configuration Example
 
@@ -100,23 +99,24 @@ The modbus sensor component allows you to read and reord modbus register values.
 | ------- | ------ | ------------ | ----------- |
 | `name` | string | **Required**| Name of the key for the value being read |
 | `type` | string | **Required**| "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
-| `offset` | int | **Required** | Register address decimal|
-| `length` | int | **Required** | Number of words to include from register address|
+| `offset` | int | **Required** | Register address decimal |
+| `length` | int | **Required** | Number of words to include from register address |
 
-**Modbus Data Model / Register Types**
+#### Modbus Data Model / Register Types
 
 |Register Type | Access | Size | Features |
 | ------- | ------ | ------------ | ----------- |
-|Coil (discrete output)	| Read-write | 1 bit | Read/Write on/off value |
-|Discrete input	| Read-only | 1 bit	| Read on/off value |
-|Input register	| Read-only	| 16 bits (0–65,535) | Read measurements and statuses |
-|Holding register |	Read-write | 16 bits (0–65,535) | Read/Write configuration values |
+|Coil (discrete output) | Read-write | 1 bit | Read/Write on/off value |
+|Discrete input   | Read-only | 1 bit | Read on/off value |
+|Input register   | Read-only | 16 bits (0-65,535) | Read measurements and statuses |
+|Holding register | Read-write | 16 bits (0-65,535) | Read/Write configuration values |
 
 [Modbus on Wikipedia](https://en.wikipedia.org/wiki/Modbus)
 
 ## Modbus Board Configuration
 
-Sample Configuration Attributes for a Board Component:
+### Sample Configuration Attributes for a Board Component
+
 ```json
 {
   "gpio_pins": [
@@ -146,11 +146,20 @@ Sample Configuration Attributes for a Board Component:
 | ------- | ------- | ------ | ------------ | ----------- |
 |`gpio_pins`\|`analog_pins`| `name` | string | **Required**| Name of the pin |
 |`gpio_pins`\|`analog_pins`| `pin_type` | string | **Required**| "input" \| "output" |
-|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Register address decimal|
+|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Register address decimal |
 |`analog_pins`| `data_type` | string | **Required** | "uint8" \| "uint16" \| "uint32" \| "uint64" \| "float32" \| "float64" |
 
-## TODO:
-  - Authentication
+## Testing
+
+Modbus test utilities are helpful:
+
+- Slave (Server) - [diagslave](https://www.modbusdriver.com/diagslave.html)
+- Master (Client) - [modpoll](https://www.modbusdriver.com/modpoll.html)
+
+## TODO
+
+- Authentication
 
 ## Credits
+
 - Simon Vetter [Go Modbus Library](https://github.com/simonvetter/modbus)
