@@ -1,3 +1,4 @@
+GO_BUILD_ENV := GOOS=linux GOARCH=arm64
 BIN_PATH=bin
 BIN_NAME=viam-modbus
 ENTRY_POINT=main.go
@@ -18,7 +19,7 @@ default: build
 
 build:
 	go mod tidy
-	go build -o $(BIN) $(ENTRY_POINT)
+	$(GO_BUILD_ENV) go build -o $(BIN) $(ENTRY_POINT)
 
 test: 
 	go test -v -coverprofile=coverage.txt -covermode=atomic ./... -race
