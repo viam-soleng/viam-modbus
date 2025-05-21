@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/simonvetter/modbus"
-	pb "go.viam.com/api/component/board/v1"
+  pb "go.viam.com/api/component/board/v1"
 	"go.viam.com/rdk/components/board"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -134,6 +134,15 @@ func (r *ModbusBoard) Close(ctx context.Context) error {
 	return nil
 }
 
+// Validate ensures all parts of the config are valid and important fields exist.
+// Returns implicit dependencies based on the config.
+// The path is the JSON path in your robot's config (not the `Config` struct) to the
+// resource being validated; e.g. "components.0".
+func (r *ModbusBoard) Validate(path string) ([]string, []string, error) {
+	// Add config validation code here
+	return nil, nil, nil
+}
+
 // DoCommand implements resource.Resource.
 func (*ModbusBoard) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{"ok": 1}, nil
@@ -156,6 +165,7 @@ func (r *ModbusBoard) Reconfigure(ctx context.Context, deps resource.Dependencie
 	return r.reconfigure(newConf, deps)
 }
 
+// 
 func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, _ resource.Dependencies) error {
 	r.logger.Infof("Reconfiguring Modbus Board Component with %v", newConf)
 	if r.client != nil {

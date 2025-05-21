@@ -19,35 +19,37 @@ type ModbusBlocks struct {
 	Name   string `json:"name"`
 }
 
-func (cfg *ModbusSensorConfig) Validate(path string) ([]string, error) {
+
+func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error) {
 	if cfg.Modbus == nil {
-		return nil, errors.New("modbus is required")
+		return nil, nil, errors.New("modbus is required")
 	}
 	//TODO: Add TCP and RTU configuration validation
 	e := cfg.Modbus.Validate()
 	if e != nil {
-		return nil, fmt.Errorf("modbus: %v", e)
+		return nil, nil, fmt.Errorf("modbus: %v", e)
 	}
 
 	if cfg.Blocks == nil {
-		return nil, errors.New("blocks is required")
+		return nil, nil, errors.New("blocks is required")
 	}
 	for i, block := range cfg.Blocks {
 		if block.Name == "" {
-			return nil, fmt.Errorf("name is required in block %v", i)
+			return nil, nil, fmt.Errorf("name is required in block %v", i)
 		}
 		if block.Type == "" {
-			return nil, fmt.Errorf("type is required in block %v", i)
+			return nil, nil, fmt.Errorf("type is required in block %v", i)
 		}
 		if block.Offset < 0 {
-			return nil, fmt.Errorf("offset must be non-negative in block %v", i)
+			return nil, nil, fmt.Errorf("offset must be non-negative in block %v", i)
 		}
 		if shouldCheckLength(block.Type) && block.Length <= 0 {
-			return nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
+			return nil, nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
 	}
-	return nil, nil
+	return nil, nil, nil
 }
+
 
 func shouldCheckLength(t string) bool {
 	switch t {

@@ -7,8 +7,8 @@ toolchain go1.24.3
 require (
 	github.com/simonvetter/modbus v1.6.3
 	github.com/stretchr/testify v1.10.0
-	go.viam.com/api v0.1.430
-	go.viam.com/rdk v0.71.2
+	go.viam.com/api v0.1.438
+	go.viam.com/rdk v0.76.0
 )
 
 require (
@@ -136,13 +136,13 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.viam.com/test v1.2.4 // indirect
-	go.viam.com/utils v0.1.140 // indirect
+	go.viam.com/utils v0.1.143 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20240904232852-e7e105dedf7e // indirect
 	golang.org/x/image v0.19.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
