@@ -4,12 +4,19 @@ import (
 	"errors"
 	"fmt"
 
-	"viam-modbus/common"
+	"go.viam.com/rdk/resource"
 )
 
+type ModbusConnectionName string
+type ModbusComponentType string
+type ModbusComponentDesc string
+
 type ModbusSensorConfig struct {
-	Modbus *common.ModbusClientConfig `json:"modbus"`
-	Blocks []ModbusBlocks             `json:"blocks"`
+	// Modbus *common.ModbusClientConfig `json:"modbus"`
+	ModbusConnection ModbusConnectionName `json:"modbus_connection_name"`
+	ComponentType    ModbusComponentType  `json:"component_type"`
+	ComponentDesc    ModbusComponentDesc  `json:"component_description"`
+	Blocks           []ModbusBlocks       `json:"blocks"`
 }
 
 type ModbusBlocks struct {
@@ -19,20 +26,24 @@ type ModbusBlocks struct {
 	Name   string `json:"name"`
 }
 
-
 func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error) {
-	if cfg.Modbus == nil {
-		return nil, nil, errors.New("modbus is required")
-	}
-	//TODO: Add TCP and RTU configuration validation
-	e := cfg.Modbus.Validate()
-	if e != nil {
-		return nil, nil, fmt.Errorf("modbus: %v", e)
+	// if cfg.Modbus == nil {
+	// 	return nil, nil, errors.New("modbus is required")
+	// }
+	// //TODO: Add TCP and RTU configuration validation
+	// e := cfg.Modbus.Validate()
+	// if e != nil {
+	// 	return nil, nil, fmt.Errorf("modbus: %v", e)
+	// }
+
+	if cfg.ModbusConnection == "" {
+		return nil, nil, resource.NewConfigValidationFieldRequiredError(path, "modbus_connection_name")
 	}
 
 	if cfg.Blocks == nil {
 		return nil, nil, errors.New("blocks is required")
 	}
+
 	for i, block := range cfg.Blocks {
 		if block.Name == "" {
 			return nil, nil, fmt.Errorf("name is required in block %v", i)
@@ -47,9 +58,8 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 			return nil, nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
 	}
-	return nil, nil, nil
+	return []string{string(cfg.ModbusConnection)}, nil, nil
 }
-
 
 func shouldCheckLength(t string) bool {
 	switch t {

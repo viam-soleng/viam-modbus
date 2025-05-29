@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/simonvetter/modbus"
-  pb "go.viam.com/api/component/board/v1"
+	pb "go.viam.com/api/component/board/v1"
 	"go.viam.com/rdk/components/board"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -18,9 +18,10 @@ import (
 	"viam-modbus/utils"
 )
 
-// TODO: Change model from "modbus-tcp" to "modbus"
+// TODO: change model from "modbus-tcp" to "modbus"
 var Model = resource.NewModel("viam-soleng", "board", "modbus-tcp")
 
+// Registers the board model
 func init() {
 	resource.RegisterComponent(
 		board.API,
@@ -165,7 +166,6 @@ func (r *ModbusBoard) Reconfigure(ctx context.Context, deps resource.Dependencie
 	return r.reconfigure(newConf, deps)
 }
 
-// 
 func (r *ModbusBoard) reconfigure(newConf *ModbusBoardCloudConfig, _ resource.Dependencies) error {
 	r.logger.Infof("Reconfiguring Modbus Board Component with %v", newConf)
 	if r.client != nil {

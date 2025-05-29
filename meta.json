@@ -9,6 +9,10 @@
       "model": "viam-soleng:board:modbus-tcp"
     },
     {
+      "api": "rdk:component:generic",
+      "model": "viam-soleng:generic:modbus-connection"
+    },
+    {
       "api":"rdk:component:sensor",
       "model":"viam-soleng:sensor:modbus-tcp"
     }

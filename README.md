@@ -1,6 +1,6 @@
 # Viam Modbus Client Module
 
-This repository contains the `board`(r/w) and `sensor`(r) package, these modules abstract away a modbus server as a board component, and can query the state of that server and return sensor readings.
+This repository contains the `connection`, `board`(r/w) and `sensor`(r) packages, these modules abstract away a modbus server as a  component, and can query the state of that server and return sensor readings.
 
 Available via the [Viam Registry](https://app.viam.com/module/viam-soleng/viam-modbus)!
 
@@ -16,14 +16,15 @@ The Viam Modbus module enables seamless communication between devices by acting 
 - **Device Control:** Enables the reading of writing of coils and registers onto a Modbus Server.
 - **Configurable Parameters:** Offers customization options for the device address, word_order, endianness, timeouts, pin types, data types and more.
 
-## Modbus Client Configuration
+## Modbus Connection Client Configuration
 
 > [!NOTE]  
 > Serial/RTU client not yet published to registry!
 
 The Viam modbus client module supports connections over tcp and serial. Which mode is used, depends on the `modbus.url` prefix as explained below.
 As with any other Viam module you can apply the configuration to your component into the `Configure` section.
-There are two configuration areas. The `modbus`config path applies to both, the sensor and the board component.
+
+Add this to your modbus connection generic component to configure the modbus client to use TCP communication.
 
 ### TCP Client Example
 
@@ -44,12 +45,12 @@ There are two configuration areas. The `modbus`config path applies to both, the 
 | `timeout_ms` | string | Optional     | Connection timeout |
 | `endianness` | string | Optional     |       |
 | `word_order` | string | Optional     |       |
-| `tls_client_cert` | string | Optional     |   Not implemented yet    |
+| `tls_client_cert` | string | Optional  |   Not implemented yet    |
 | `tls_root_cas` | string | Optional     |   Not implemented yet    |
 
 ### Serial / RTU Client Example
 
-Add this to your modbus board or sensor component to configure the modbus client to use serial communication.
+Add this to your modbus connection generic component to configure the modbus client to use serial communication.
 
 ```json
   "modbus": {
@@ -74,12 +75,13 @@ Add this to your modbus board or sensor component to configure the modbus client
 
 ## Modbus Sensor Configuration
 
-The modbus sensor component allows you to read and record modbus register values.
+The modbus sensor component allows you to read and record modbus register values.  Specify the modbus connection generic component name.
 
 ### Sensor Component Configuration Example
 
 ```json
 {
+  "modbus_connection_name": "modbus-connection-server",
   "blocks": [
     {
       "length": 1,
@@ -88,8 +90,7 @@ The modbus sensor component allows you to read and record modbus register values
       "type": "input_registers"
     },
     {...}
-  ],
-  "modbus": {...}
+  ]
 }
 ```
 
@@ -119,6 +120,7 @@ The modbus sensor component allows you to read and record modbus register values
 
 ```json
 {
+  "modbus_connection_name": "modbus-connection-server",
   "gpio_pins": [
     {
       "pin_type": "input",
@@ -135,8 +137,7 @@ The modbus sensor component allows you to read and record modbus register values
       "offset": 0
     },
     {...}
-  ],
-  "modbus": {...},
+  ]
 }
 ```
 
