@@ -21,6 +21,9 @@
     "setup": "./setup.sh",
     "build": "make package",
     "path": "bin/viam-modbus",
+    "darwin_deps": [
+      "nlopt-static"
+    ],
     "arch": [
       "linux/amd64",
       "linux/arm64",
