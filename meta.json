@@ -22,7 +22,8 @@
     "build": "make package",
     "path": "bin/viam-modbus",
     "darwin_deps": [
-      "nlopt-static"
+      "nlopt-static",
+      "go"
     ],
     "arch": [
       "linux/amd64",
