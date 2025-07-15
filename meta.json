@@ -13,16 +13,20 @@
       "model": "viam-soleng:generic:modbus-connection"
     },
     {
-      "api":"rdk:component:sensor",
-      "model":"viam-soleng:sensor:modbus-tcp"
+      "api": "rdk:component:sensor",
+      "model": "viam-soleng:sensor:modbus-tcp"
     }
   ],
   "build": {
     "setup": "./setup.sh",
     "build": "make package",
     "path": "bin/viam-modbus",
-    "arch": ["linux/amd64", "linux/arm64", "darwin/arm64", "darwin/amd64"]
+    "arch": [
+      "linux/amd64",
+      "linux/arm64",
+      "darwin/arm64"
+    ]
   },
-  "path" : "module.tar.gz",
+  "path": "module.tar.gz",
   "entrypoint": "bin/viam-modbus"
 }
