@@ -3,6 +3,7 @@ package modbus_sensor
 import (
 	"context"
 	"encoding/json"
+	"math/rand"
 	"sync"
 
 	"go.viam.com/rdk/components/generic"
@@ -45,14 +46,15 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 
 type ModbusSensor struct {
 	resource.Named
-	mu                sync.RWMutex
-	logger            logging.Logger
-	cancelFunc        context.CancelFunc
-	ctx               context.Context
-	blocks            []ModbusBlocks
-	modbus_connection resource.Named
-	component_type    string
-	component_desc    string
+	mu                 sync.RWMutex
+	logger             logging.Logger
+	cancelFunc         context.CancelFunc
+	ctx                context.Context
+	blocks             []ModbusBlocks
+	modbus_connection  resource.Named
+	component_type     string
+	component_desc     string
+	component_playback string
 }
 
 // Validate ensures all parts of the config are valid and important fields exist.
@@ -74,19 +76,26 @@ func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	// stringify the r.blocks array of json objects to pass it as an interface to the modbus_connection DoCommand()
-	// ints become float64 when passing a json object through a interface
-	jsonBytes, err := json.Marshal(r.blocks)
-	if err != nil {
-		r.logger.Infof("Error marshaling JSON:%v", err)
-		return nil, err
-	}
-	jsonBlocks := string(jsonBytes)
-
 	// Create an empty map to store the register key/values
 	modbusResponse := make(map[string]interface{})
-	//r.logger.Infof("ModbusSensor Readings() calling ModbusConnection DoCommand() with %v", jsonBlocks)
-	modbusResponse, err = r.modbus_connection.DoCommand(ctx, map[string]interface{}{"blocks": jsonBlocks})
+	var err error
+
+	if r.component_playback != "" {
+		r.logger.Infof("Readings() - randomize / Playback these records: %v", r.component_playback)
+		modbusResponse, err = r.Playback()
+	} else {
+		// stringify the r.blocks array of json objects to pass it as an interface to the modbus_connection DoCommand()
+		// ints become float64 when passing a json object through a interface
+		jsonBytes, err := json.Marshal(r.blocks)
+		if err != nil {
+			r.logger.Infof("Error marshaling JSON:%v", err)
+			return nil, err
+		}
+		jsonBlocks := string(jsonBytes)
+
+		//r.logger.Infof("ModbusSensor Readings() calling ModbusConnection DoCommand() with %v", jsonBlocks)
+		modbusResponse, err = r.modbus_connection.DoCommand(ctx, map[string]interface{}{"blocks": jsonBlocks})
+	}
 
 	// Add the opinionated component key/value attributes to the response
 	if r.component_type != "" {
@@ -101,6 +110,34 @@ func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 
 	// Return the modbus Response and any component attributes
 	return modbusResponse, err
+}
+
+// Function to randomize some playback data and return a map
+func (r *ModbusSensor) Playback() (map[string]interface{}, error) {
+	// Unmarshal the playback json data into a map
+	var playbackdata map[string]interface{}
+	err := json.Unmarshal([]byte(r.component_playback), &playbackdata)
+	if err != nil {
+		r.logger.Infof("Error unmarshaling JSON:", err)
+		return nil, err
+	}
+
+	results := map[string]interface{}{}
+	for key, value := range playbackdata {
+		// check if key not exist in results map, add it
+		if _, ok := results[key]; !ok {
+			results[key] = []string{}
+		}
+		if candidateArray, ok := value.([]interface{}); ok { // if value is array
+			//Initial test - return the first index in the array
+			//results[key] = candidateArray[0]
+
+			// randomly select one of the candidate playback values
+			randomIndex := rand.Intn(len(candidateArray))
+			results[key] = candidateArray[randomIndex]
+		}
+	}
+	return results, nil
 }
 
 // Closes the modbus sensor instance
@@ -141,6 +178,7 @@ func (r *ModbusSensor) reconfigure(newConf *ModbusSensorConfig, deps resource.De
 	r.modbus_connection = modbus_connection.(resource.Named)
 	r.component_type = string(newConf.ComponentType)
 	r.component_desc = string(newConf.ComponentDesc)
+	r.component_playback = string(newConf.ComponentPlayback)
 
 	r.blocks = newConf.Blocks
 	return nil

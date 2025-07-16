@@ -10,13 +10,15 @@ import (
 type ModbusConnectionName string
 type ModbusComponentType string
 type ModbusComponentDesc string
+type ModbusComponentPlayBack string
 
 type ModbusSensorConfig struct {
 	// Modbus *common.ModbusClientConfig `json:"modbus"`
-	ModbusConnection ModbusConnectionName `json:"modbus_connection_name"`
-	ComponentType    ModbusComponentType  `json:"component_type"`
-	ComponentDesc    ModbusComponentDesc  `json:"component_description"`
-	Blocks           []ModbusBlocks       `json:"blocks"`
+	ModbusConnection  ModbusConnectionName    `json:"modbus_connection_name"`
+	ComponentType     ModbusComponentType     `json:"component_type"`
+	ComponentDesc     ModbusComponentDesc     `json:"component_description"`
+	ComponentPlayback ModbusComponentPlayBack `json:"component_playback_values"`
+	Blocks            []ModbusBlocks          `json:"blocks"`
 }
 
 type ModbusBlocks struct {
