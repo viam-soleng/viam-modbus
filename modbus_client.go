@@ -64,6 +64,9 @@ type modbusClient struct {
 
 	endianness modbus.Endianness
 	wordOrder  modbus.WordOrder
+
+	modbusClient *modbus.ModbusClient
+	config       modbus.ClientConfiguration
 }
 
 func newModbusClient(ctx context.Context, deps resource.Dependencies, config resource.Config, logger logging.Logger) (generic.Service, error) {
@@ -106,14 +109,6 @@ func NewModbusClient(ctx context.Context, name resource.Name, endianness modbus.
 		wordOrder:  wordOrder,
 	}
 
-	//TODO: Put into seperate function e.g. connect()
-	/*
-		err := client.initializeModbusClient()
-		if err != nil {
-			return nil, err
-		}
-	*/
-
 	err := GlobalClientRegistry.Add(name.ShortName(), client)
 	if err != nil {
 		return nil, err
@@ -125,6 +120,11 @@ func NewModbusClient(ctx context.Context, name resource.Name, endianness modbus.
 // Start implements the Client interface.
 func (gs *modbusClient) Start() error {
 	// Add initialization logic here if needed
+	err := gs.initializeModbusClient()
+	if err != nil {
+		gs.logger.Errorf("Failed to initialize modbus client: %v", err)
+		return err
+	}
 	return nil
 }
 
@@ -138,4 +138,35 @@ func (gs *modbusClient) Close(ctx context.Context) error {
 
 func (gs *modbusClient) Name() resource.Name {
 	return gs.name
+}
+
+func (r *modbusClient) initializeModbusClient() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// TODO: for an RTU (serial) device/bus
+	/*
+	   client, err = modbus.NewClient(&modbus.ClientConfiguration{
+	       URL:      "rtu:///dev/ttyUSB0",
+	       Speed:    19200,                   // default
+	       DataBits: 8,                       // default, optional
+	       Parity:   modbus.PARITY_NONE,      // default, optional
+	       StopBits: 2,                       // default if no parity, optional
+	       Timeout:  300 * time.Millisecond,
+	   })
+	*/
+
+	client, err := modbus.NewClient(&r.config)
+	if err != nil {
+		r.logger.Errorf("Failed to create modbus client: %#v", err)
+		return err
+	}
+	client.SetEncoding(r.endianness, r.wordOrder)
+	err = client.Open()
+	if err != nil {
+		r.logger.Errorf("Failed to open modbus client: %#v", err)
+		return err
+	}
+	r.modbusClient = client
+	return nil
 }
