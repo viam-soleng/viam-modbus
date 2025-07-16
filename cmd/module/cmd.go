@@ -11,7 +11,7 @@ import (
 
 func main() {
 	module.ModularMain(
-		resource.APIModel{API: generic.API, Model: viammodbus.ModbusClientsModel},
+		resource.APIModel{API: generic.API, Model: viammodbus.ModbusClientModel},
 	)
 }
 
