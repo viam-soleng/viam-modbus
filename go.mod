@@ -6,7 +6,6 @@ toolchain go1.24.3
 
 require (
 	github.com/simonvetter/modbus v1.6.3
-	github.com/stretchr/testify v1.10.0
 	go.viam.com/rdk v0.83.0
 )
 
@@ -133,6 +132,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/srikrsna/protoc-gen-gotag v0.6.2 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/viamrobotics/ice/v2 v2.3.39 // indirect
