@@ -16,6 +16,8 @@ import (
 var NamespaceFamily = resource.NewModelFamily("viam-soleng", "modbus")
 var ModbusClientModel = NamespaceFamily.WithModel("clients")
 
+var ErrRetriesExhausted = fmt.Errorf("retries exhausted")
+
 func init() {
 	resource.RegisterComponent(
 		generic.API,
@@ -133,6 +135,11 @@ func (gs *modbusClient) DoCommand(ctx context.Context, cmd map[string]interface{
 }
 
 func (gs *modbusClient) Close(ctx context.Context) error {
+	err := gs.modbusClient.Close()
+	if err != nil {
+		gs.logger.Errorf("Failed to close modbus client: %v", err)
+	}
+	GlobalClientRegistry.Remove(gs.name.ShortName())
 	return nil
 }
 
@@ -169,4 +176,417 @@ func (r *modbusClient) initializeModbusClient() error {
 	}
 	r.modbusClient = client
 	return nil
+}
+
+func (r *modbusClient) reinitializeModbusClient() error {
+	r.logger.Warnf("Re-initializing modbus client")
+	return r.initializeModbusClient()
+}
+
+func (r *modbusClient) ReadCoils(offset, length uint16, unitID int8) ([]bool, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadCoils(offset, length)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return nil, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadCoil(offset uint16, unitID int8) (bool, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadCoil(offset)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return false, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return false, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadDiscreteInputs(offset, length uint16, unitID int8) ([]bool, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadDiscreteInputs(offset, length)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return nil, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadDiscreteInput(offset uint16, unitID int8) (bool, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadDiscreteInput(offset)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return false, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return false, ErrRetriesExhausted
+}
+
+func (r *modbusClient) WriteCoil(offset uint16, value bool, unitID int8) error {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		err := r.modbusClient.WriteCoil(offset, value)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	return ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadHoldingRegisters(offset, length uint16, unitID int8) ([]uint16, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadRegisters(offset, length, modbus.HOLDING_REGISTER)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return nil, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadInputRegisters(offset, length uint16, unitID int8) ([]uint16, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadRegisters(offset, length, modbus.INPUT_REGISTER)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return nil, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadInt32(offset uint16, regType modbus.RegType, unitID int8) (int32, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadUint32(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return int32(b), nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadUInt32(offset uint16, regType modbus.RegType, unitID int8) (uint32, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadUint32(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadUInt64(offset uint16, regType modbus.RegType, unitID int8) (uint64, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadUint64(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadFloat32(offset uint16, regType modbus.RegType, unitID int8) (float32, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadFloat32(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadFloat64(offset uint16, regType modbus.RegType, unitID int8) (float64, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadFloat64(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadUInt8(offset uint16, regType modbus.RegType, unitID int8) (uint8, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadRegister(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return uint8(b), nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadInt16(offset uint16, regType modbus.RegType, unitID int8) (int16, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadRegister(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return int16(b), nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadUInt16(offset uint16, regType modbus.RegType, unitID int8) (uint16, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadRegister(offset, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return 0, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return 0, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadBytes(offset, length uint16, regType modbus.RegType, unitID int8) ([]byte, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadBytes(offset, length, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return nil, ErrRetriesExhausted
+}
+
+func (r *modbusClient) ReadRawBytes(offset, length uint16, regType modbus.RegType, unitID int8) ([]byte, error) {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		b, err := r.modbusClient.ReadRawBytes(offset, length, regType)
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return b, nil
+		}
+	}
+	return nil, ErrRetriesExhausted
+}
+
+func (r *modbusClient) WriteUInt16(offset uint16, value uint16, unitID int8) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteRegister(offset, value)
+	}, unitID)
+}
+
+func (r *modbusClient) WriteUInt32(offset uint16, value uint32, unitID int8) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteUint32(offset, value)
+	}, unitID)
+}
+
+func (r *modbusClient) WriteUInt64(offset uint16, value uint64, unitID int8) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteUint64(offset, value)
+	}, unitID)
+}
+
+func (r *modbusClient) WriteFloat32(offset uint16, value float32, unitID int8) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteFloat32(offset, value)
+	}, unitID)
+}
+
+func (r *modbusClient) WriteFloat64(offset uint16, value float64, unitID int8) error {
+	return r.WriteWithRetry(func() error {
+		return r.modbusClient.WriteFloat64(offset, value)
+	}, unitID)
+}
+
+func (r *modbusClient) WriteWithRetry(w func() error, unitID int8) error {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID >= 0 {
+			r.modbusClient.SetUnitId(uint8(unitID))
+		}
+		err := w()
+		if err != nil {
+			availableRetries--
+			err := r.reinitializeModbusClient()
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	return ErrRetriesExhausted
 }
