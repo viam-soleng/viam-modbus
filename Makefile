@@ -1,25 +1,20 @@
-BIN_PATH=bin
-BIN_NAME=viam-modbus
 ENTRY_POINT=main.go
 
 BIN=$(BIN_PATH)/$(BIN_NAME)
 PACKAGE_NAME=$(BIN_NAME).tar.gz
 
-default: build
 
-build:
-	go mod tidy
-	go build -o $(BIN) $(ENTRY_POINT)
+GO_BUILD_ENV :=
+GO_BUILD_FLAGS :=
+MODULE_BINARY := bin/viam-modbus
 
-test: 
-	go test -v -coverprofile=coverage.txt -covermode=atomic ./... -race
+$(MODULE_BINARY): Makefile go.mod *.go cmd/module/*.go common/*.go 
+	$(GO_BUILD_ENV) go build $(GO_BUILD_FLAGS) -o $(MODULE_BINARY) cmd/module/cmd.go
 
-clean-package:
-	rm -rf $(PACKAGE_NAME)
 
-clean-bin:
-	rm -rf $(BIN_PATH)
 
-package: clean-package build
-	tar -czf $(PACKAGE_NAME) $(BIN)
+module: module.tar.gz
 
+
+module.tar.gz: meta.json $(MODULE_BINARY)
+	tar czf $@ meta.json $(MODULE_BINARY)
