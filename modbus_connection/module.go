@@ -92,83 +92,88 @@ func (r *ModbusConnection) DoCommand(ctx context.Context, cmd map[string]interfa
 		return nil, err
 	}
 
+	unitID := int8(-1) // Negative unitID means no unitID is set
+	if id, ok := cmd["unit_id"].(int8); ok {
+		unitID = id
+	}
+
 	results := map[string]interface{}{}
 	for _, block := range Blocks {
 		switch block.Type {
 		case "coils":
-			b, err := r.client.ReadCoils(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadCoils(uint16(block.Offset), uint16(block.Length), unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
 		case "discrete_inputs":
-			b, err := r.client.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length), unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
 		case "holding_registers":
-			b, err := r.client.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length), unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeUInt16ArrayToOutput(b, block, results)
 		case "input_registers":
-			b, err := r.client.ReadInputRegisters(uint16(block.Offset), uint16(block.Length))
+			b, err := r.client.ReadInputRegisters(uint16(block.Offset), uint16(block.Length), unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeUInt16ArrayToOutput(b, block, results)
 		case "bytes":
-			b, e := r.client.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			writeByteArrayToOutput(b, block, results)
 		case "rawBytes":
-			b, e := r.client.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			writeByteArrayToOutput(b, block, results)
 		case "uint8":
-			b, e := r.client.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = int32(b)
 		case "int16":
-			b, e := r.client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = int32(b)
 		case "uint16":
-			b, e := r.client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = int32(b)
 		case "int32":
-			b, e := r.client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = b
 		case "uint32":
-			b, e := r.client.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = b
 		case "float32":
-			b, e := r.client.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = b
 		case "float64":
-			b, e := r.client.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER)
+			b, e := r.client.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER, unitID)
 			if e != nil {
 				return nil, e
 			}

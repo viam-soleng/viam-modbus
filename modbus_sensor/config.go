@@ -17,6 +17,7 @@ type ModbusSensorConfig struct {
 	ComponentType    ModbusComponentType  `json:"component_type"`
 	ComponentDesc    ModbusComponentDesc  `json:"component_description"`
 	Blocks           []ModbusBlocks       `json:"blocks"`
+	UnitID           int                  `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
 }
 
 type ModbusBlocks struct {
@@ -57,6 +58,10 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 		if shouldCheckLength(block.Type) && block.Length <= 0 {
 			return nil, nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
+	}
+
+	if cfg.UnitID < 0 || cfg.UnitID > 247 {
+		return nil, nil, fmt.Errorf("unit_id must be between 0 and 247 or removed, got %d", cfg.UnitID)
 	}
 	return []string{string(cfg.ModbusConnection)}, nil, nil
 }

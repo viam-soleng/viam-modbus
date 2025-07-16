@@ -1,6 +1,6 @@
 # Viam Modbus Client Module
 
-This repository contains the `connection`, `board`(r/w) and `sensor`(r) packages, these modules abstract away a modbus server as a  component, and can query the state of that server and return sensor readings.
+This repository contains the `connection`, `board`(r/w) and `sensor`(r) packages, these modules abstract away a modbus server as a component, and can query the state of that server and return sensor readings.
 
 Available via the [Viam Registry](https://app.viam.com/module/viam-soleng/viam-modbus)!
 
@@ -39,14 +39,14 @@ Add this to your modbus connection generic component to configure the modbus cli
 
 #### TCP Client Configuration Attributes
 
-| Name    | Type   | Inclusion    | Description |
-| ------- | ------ | ------------ | ----------- |
-| `url`   | string | **Required** | TCP Config: `"tcp://<ip address>:port"`|
-| `timeout_ms` | string | Optional     | Connection timeout |
-| `endianness` | string | Optional     |       |
-| `word_order` | string | Optional     |       |
-| `tls_client_cert` | string | Optional  |   Not implemented yet    |
-| `tls_root_cas` | string | Optional     |   Not implemented yet    |
+| Name              | Type   | Inclusion    | Description                             |
+| ----------------- | ------ | ------------ | --------------------------------------- |
+| `url`             | string | **Required** | TCP Config: `"tcp://<ip address>:port"` |
+| `timeout_ms`      | string | Optional     | Connection timeout                      |
+| `endianness`      | string | Optional     |                                         |
+| `word_order`      | string | Optional     |                                         |
+| `tls_client_cert` | string | Optional     | Not implemented yet                     |
+| `tls_root_cas`    | string | Optional     | Not implemented yet                     |
 
 ### Serial / RTU Client Example
 
@@ -62,26 +62,27 @@ Add this to your modbus connection generic component to configure the modbus cli
 
 #### Serial Client Configuration Attributes
 
-| Name    | Type   | Inclusion    | Description |
-| ------- | ------ | ------------ | ----------- |
-| `url` | string | **Required** | Serial Config: `"rtu://<serial device path>"` |
-| `speed` | string | **Required** | Bit (bit/s) |
-| `data_bits` | uint | Optional |  |
-| `parity` | uint | Optional |  |
-| `stop_bits` | uint | Optional |  |
-| `timeout_ms` | string | Optional     | Connection timeout |
-| `endianness` | string | Optional     |       |
-| `word_order` | string | Optional     |       |
+| Name         | Type   | Inclusion    | Description                                   |
+| ------------ | ------ | ------------ | --------------------------------------------- |
+| `url`        | string | **Required** | Serial Config: `"rtu://<serial device path>"` |
+| `speed`      | string | **Required** | Bit (bit/s)                                   |
+| `data_bits`  | uint   | Optional     |                                               |
+| `parity`     | uint   | Optional     |                                               |
+| `stop_bits`  | uint   | Optional     |                                               |
+| `timeout_ms` | string | Optional     | Connection timeout                            |
+| `endianness` | string | Optional     |                                               |
+| `word_order` | string | Optional     |                                               |
 
 ## Modbus Sensor Configuration
 
-The modbus sensor component allows you to read and record modbus register values.  Specify the modbus connection generic component name.
+The modbus sensor component allows you to read and record modbus register values. Specify the modbus connection generic component name.
 
 ### Sensor Component Configuration Example
 
 ```json
 {
   "modbus_connection_name": "modbus-connection-server",
+  "unit_id": 4,
   "blocks": [
     {
       "length": 1,
@@ -94,23 +95,32 @@ The modbus sensor component allows you to read and record modbus register values
 }
 ```
 
+### Sensor Component Attributes
+
+| Name                     | Type    | Inclusion    | Description                                   |
+| ------------------------ | ------- | ------------ | --------------------------------------------- |
+| `modbus_connection_name` | string  | **Required** | Name of the key for the value being read      |
+| `unit_id`                | int     | **Optional** | Optionally set the unit id, valid range 0-247 |
+| `blocks`                 | []Block | **Required** | Registers etc. to read see below              |
+
 ### Sensor Component Block Attributes
 
-| Name    | Type   | Inclusion    | Description |
-| ------- | ------ | ------------ | ----------- |
-| `name` | string | **Required**| Name of the key for the value being read |
-| `type` | string | **Required**| "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
-| `offset` | int | **Required** | Register address decimal |
-| `length` | int | **Required** | Number of words to include from register address |
+| Name      | Type   | Inclusion    | Description                                                              |
+| --------- | ------ | ------------ | ------------------------------------------------------------------------ |
+| `name`    | string | **Required** | Name of the key for the value being read                                 |
+| `type`    | string | **Required** | "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
+| `offset`  | int    | **Required** | Register address decimal                                                 |
+| `length`  | int    | **Required** | Number of words to include from register address                         |
+| `unit_id` | int    | **Optional** | Set the unit id, valid range 0-247                                       |
 
 #### Modbus Data Model / Register Types
 
-|Register Type | Access | Size | Features |
-| ------- | ------ | ------------ | ----------- |
-|Coil (discrete output) | Read-write | 1 bit | Read/Write on/off value |
-|Discrete input   | Read-only | 1 bit | Read on/off value |
-|Input register   | Read-only | 16 bits (0-65,535) | Read measurements and statuses |
-|Holding register | Read-write | 16 bits (0-65,535) | Read/Write configuration values |
+| Register Type          | Access     | Size               | Features                        |
+| ---------------------- | ---------- | ------------------ | ------------------------------- |
+| Coil (discrete output) | Read-write | 1 bit              | Read/Write on/off value         |
+| Discrete input         | Read-only  | 1 bit              | Read on/off value               |
+| Input register         | Read-only  | 16 bits (0-65,535) | Read measurements and statuses  |
+| Holding register       | Read-write | 16 bits (0-65,535) | Read/Write configuration values |
 
 [Modbus on Wikipedia](https://en.wikipedia.org/wiki/Modbus)
 
@@ -143,12 +153,12 @@ The modbus sensor component allows you to read and record modbus register values
 
 ### Board Component Block Attributes
 
-|Path| Name    | Type   | Inclusion    | Description |
-| ------- | ------- | ------ | ------------ | ----------- |
-|`gpio_pins`\|`analog_pins`| `name` | string | **Required**| Name of the pin |
-|`gpio_pins`\|`analog_pins`| `pin_type` | string | **Required**| "input" \| "output" |
-|`gpio_pins`\|`analog_pins`| `offset` | int | **Required** | Register address decimal |
-|`analog_pins`| `data_type` | string | **Required** | "uint8" \| "uint16" \| "uint32" \| "uint64" \| "float32" \| "float64" |
+| Path                       | Name        | Type   | Inclusion    | Description                                                           |
+| -------------------------- | ----------- | ------ | ------------ | --------------------------------------------------------------------- |
+| `gpio_pins`\|`analog_pins` | `name`      | string | **Required** | Name of the pin                                                       |
+| `gpio_pins`\|`analog_pins` | `pin_type`  | string | **Required** | "input" \| "output"                                                   |
+| `gpio_pins`\|`analog_pins` | `offset`    | int    | **Required** | Register address decimal                                              |
+| `analog_pins`              | `data_type` | string | **Required** | "uint8" \| "uint16" \| "uint32" \| "uint64" \| "float32" \| "float64" |
 
 ## Testing
 

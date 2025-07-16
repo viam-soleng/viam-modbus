@@ -53,6 +53,7 @@ type ModbusSensor struct {
 	modbus_connection resource.Named
 	component_type    string
 	component_desc    string
+	unitID            int // Optional unit ID for Modbus commands
 }
 
 // Validate ensures all parts of the config are valid and important fields exist.
@@ -86,7 +87,7 @@ func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 	// Create an empty map to store the register key/values
 	modbusResponse := make(map[string]interface{})
 	//r.logger.Infof("ModbusSensor Readings() calling ModbusConnection DoCommand() with %v", jsonBlocks)
-	modbusResponse, err = r.modbus_connection.DoCommand(ctx, map[string]interface{}{"blocks": jsonBlocks})
+	modbusResponse, err = r.modbus_connection.DoCommand(ctx, map[string]interface{}{"blocks": jsonBlocks, "unit_id": r.unitID})
 
 	// Add the opinionated component key/value attributes to the response
 	if r.component_type != "" {
@@ -141,6 +142,7 @@ func (r *ModbusSensor) reconfigure(newConf *ModbusSensorConfig, deps resource.De
 	r.modbus_connection = modbus_connection.(resource.Named)
 	r.component_type = string(newConf.ComponentType)
 	r.component_desc = string(newConf.ComponentDesc)
+	r.unitID = int(newConf.UnitID)
 
 	r.blocks = newConf.Blocks
 	return nil

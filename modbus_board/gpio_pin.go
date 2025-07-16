@@ -19,10 +19,14 @@ type ModbusGpioPin struct {
 func (r *ModbusGpioPin) Get(ctx context.Context, extra map[string]interface{}) (bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	// TODO: Add Unit ID functionality
+	const unitID = int8(-1) // -1 means we don't set unit ID
+
 	if r.pinType == common.INPUT_PIN {
-		return r.board.client.ReadDiscreteInput(r.offset)
+		return r.board.client.ReadDiscreteInput(r.offset, unitID)
 	} else {
-		return r.board.client.ReadCoil(r.offset)
+		return r.board.client.ReadCoil(r.offset, unitID)
 	}
 }
 
@@ -40,10 +44,14 @@ func (*ModbusGpioPin) PWMFreq(ctx context.Context, extra map[string]interface{})
 func (r *ModbusGpioPin) Set(ctx context.Context, high bool, extra map[string]interface{}) error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
+	// TODO: Add Unit ID functionality
+	const unitID = int8(-1) // -1 means we don't set unit ID
+
 	if r.pinType == common.INPUT_PIN {
 		return common.ErrSetInputPin
 	}
-	return r.board.client.WriteCoil(r.offset, high)
+	return r.board.client.WriteCoil(r.offset, high, unitID)
 }
 
 // SetPWM implements board.GPIOPin.
