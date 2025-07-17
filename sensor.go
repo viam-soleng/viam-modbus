@@ -14,13 +14,13 @@ import (
 	"go.viam.com/rdk/resource"
 )
 
-var Model = resource.NewModel("viam-soleng", "modbus", "sensor")
+var ModbusSensorModel = NamespaceFamily.WithModel("sensor")
 
 // Registers the sensor model
 func init() {
 	resource.RegisterComponent(
 		sensor.API,
-		Model,
+		ModbusSensorModel,
 		resource.Registration[sensor.Sensor, *ModbusSensorConfig]{
 			Constructor: NewModbusSensor,
 		},
