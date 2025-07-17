@@ -27,17 +27,10 @@ func init() {
 	)
 }
 
-type ModbusConnectionName string
-type ModbusComponentType string
-type ModbusComponentDesc string
-
 type ModbusSensorConfig struct {
-	// Modbus *common.ModbusClientConfig `json:"modbus"`
-	ModbusConnection ModbusConnectionName `json:"modbus_connection_name"`
-	ComponentType    ModbusComponentType  `json:"component_type"`
-	ComponentDesc    ModbusComponentDesc  `json:"component_description"`
-	Blocks           []ModbusBlocks       `json:"blocks"`
-	UnitID           int8                 `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
+	ModbusConnection string         `json:"modbus_connection_name"`
+	Blocks           []ModbusBlocks `json:"blocks"`
+	UnitID           int            `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
 }
 
 type ModbusBlocks struct {
@@ -88,6 +81,10 @@ func shouldCheckLength(t string) bool {
 
 // Creates a new modbus sensor instance
 func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (sensor.Sensor, error) {
+	newConf, err := resource.NativeConfig[*ModbusSensorConfig](conf)
+	if err != nil {
+		return nil, err
+	}
 
 	c, cancelFunc := context.WithCancel(context.Background())
 	s := ModbusSensor{
@@ -96,8 +93,8 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 		cancelFunc: cancelFunc,
 		ctx:        c,
 	}
-	//TODO: Get the modbus connection from the registry
-	client, err := GlobalClientRegistry.Get(conf.Attributes.String("client"))
+
+	client, err := GlobalClientRegistry.Get(newConf.ModbusConnection)
 	if err != nil {
 		return nil, err
 	}
@@ -108,16 +105,13 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 type ModbusSensor struct {
 	resource.AlwaysRebuild
 	resource.Named
-	mu                sync.RWMutex
-	logger            logging.Logger
-	cancelFunc        context.CancelFunc
-	ctx               context.Context
-	blocks            []ModbusBlocks
-	modbus_connection resource.Named
-	component_type    string
-	component_desc    string
-	unitID            int8 // Optional unit ID for Modbus commands
-	modbus_client     *modbusClient
+	mu            sync.RWMutex
+	logger        logging.Logger
+	cancelFunc    context.CancelFunc
+	ctx           context.Context
+	blocks        []ModbusBlocks
+	unitID        *uint8 // Optional unit ID for Modbus commands
+	modbus_client *modbusClient
 }
 
 //TODO: Remove comment after testing
@@ -233,7 +227,7 @@ func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 
 // DoCommand currently not implemented
 func (*ModbusSensor) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{"ok": 1}, nil
+	return map[string]interface{}{}, fmt.Errorf("DoCommand not implemented for ModbusSensor")
 }
 
 // Closes the modbus sensor instance
