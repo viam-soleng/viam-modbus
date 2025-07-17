@@ -573,3 +573,13 @@ func GetWordOrder(s string) (modbus.WordOrder, error) {
 		return 0, fmt.Errorf("invalid word order")
 	}
 }
+
+// TODO: Implement Modbus client creation logic
+func (r *modbusClient) newModbusClient(config *modbus.ClientConfiguration) (*modbus.ModbusClient, error) {
+	client, err := modbus.NewClient(config)
+	if err != nil {
+		r.logger.Errorf("Failed to create modbus client: %#v", err)
+		return nil, err
+	}
+	return client, nil
+}

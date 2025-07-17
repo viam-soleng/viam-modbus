@@ -21,6 +21,11 @@ func (cr *clientRegistry) Add(name string, client *modbusClient) error {
 		existingClient.client.Close()
 		delete(cr.clients, name)
 	}
+	mc, err := client.newModbusClient(&client.config)
+	if err != nil {
+		return fmt.Errorf("failed to create modbus client for name [%s]: %w", name, err)
+	}
+	client.client = mc
 	cr.clients[name] = client
 	return nil
 }
