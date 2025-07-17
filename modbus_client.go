@@ -34,10 +34,10 @@ type modbusClientConfig struct {
 	Parity        uint   `json:"parity"`
 	StopBits      uint   `json:"stop_bits"`
 	Timeout       int    `json:"timeout_ms"`
-	TLSClientCert string `json:"tls_client_cert"`
-	TLSRootCAs    string `json:"tls_root_cas"`
 	Endianness    string `json:"endianness"`
 	WordOrder     string `json:"word_order"`
+	TLSClientCert string `json:"tls_client_cert"`
+	TLSRootCAs    string `json:"tls_root_cas"`
 }
 
 func (cfg *modbusClientConfig) Validate(path string) ([]string, []string, error) {
@@ -53,13 +53,14 @@ func (cfg *modbusClientConfig) Validate(path string) ([]string, []string, error)
 	if cfg.WordOrder != "high" && cfg.WordOrder != "low" {
 		return nil, nil, fmt.Errorf("word_order must be %v or %v", "high", "low")
 	}
+	if cfg.TLSClientCert != "" || cfg.TLSRootCAs != "" {
+		fmt.Println("Warning: TLS is not supported yet, TLSClientCert and TLSRootCAs will be ignored")
+	}
 	return []string{}, nil, nil
 }
 
 type modbusClient struct {
-	//TODO: Check if always rebuild works as original module did use reconfig
 	resource.AlwaysRebuild
-
 	name   resource.Name
 	mu     sync.RWMutex
 	logger logging.Logger
@@ -96,24 +97,20 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 		Parity:   newConf.Parity,
 		StopBits: newConf.StopBits,
 		Timeout:  timeout,
-		// TODO: To be implemented
-		//TLSClientCert: tlsClientCert,
-		//TLSRootCAs:    tlsRootCAs,
+		//TODO: Add TLS support
+		//TLSClientCert: newConf.TLSClientCert,
+		//TLSRootCAs:    newConf.TLSRootCAs,
 	}
 
-	return NewModbusClient(ctx, config.ResourceName(), endianness, wordOrder, clientConfig, logger)
-}
-
-func NewModbusClient(ctx context.Context, name resource.Name, endianness modbus.Endianness, wordOrder modbus.WordOrder, clientConfig modbus.ClientConfiguration, logger logging.Logger) (generic.Service, error) {
-	//TODO: Modbus client configurtion seems unclean -> check
-
 	client := &modbusClient{
+		name:       config.ResourceName(),
 		logger:     logger,
 		endianness: endianness,
 		wordOrder:  wordOrder,
+		config:     clientConfig,
 	}
 
-	err := GlobalClientRegistry.Add(name.ShortName(), client)
+	err = GlobalClientRegistry.Add(client.name.Name, client)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +119,7 @@ func NewModbusClient(ctx context.Context, name resource.Name, endianness modbus.
 }
 
 func (gs *modbusClient) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
+	return nil, fmt.Errorf("DoCommand not implemented")
 }
 
 func (gs *modbusClient) Close(ctx context.Context) error {
