@@ -2,12 +2,13 @@ package viammodbus
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 
-	"go.viam.com/rdk/components/generic"
+	"github.com/simonvetter/modbus"
 	"go.viam.com/rdk/components/sensor"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
@@ -36,7 +37,7 @@ type ModbusSensorConfig struct {
 	ComponentType    ModbusComponentType  `json:"component_type"`
 	ComponentDesc    ModbusComponentDesc  `json:"component_description"`
 	Blocks           []ModbusBlocks       `json:"blocks"`
-	UnitID           int                  `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
+	UnitID           int8                 `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
 }
 
 type ModbusBlocks struct {
@@ -47,15 +48,6 @@ type ModbusBlocks struct {
 }
 
 func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error) {
-	// if cfg.Modbus == nil {
-	// 	return nil, nil, errors.New("modbus is required")
-	// }
-	// //TODO: Add TCP and RTU configuration validation
-	// e := cfg.Modbus.Validate()
-	// if e != nil {
-	// 	return nil, nil, fmt.Errorf("modbus: %v", e)
-	// }
-
 	if cfg.ModbusConnection == "" {
 		return nil, nil, resource.NewConfigValidationFieldRequiredError(path, "modbus_connection_name")
 	}
@@ -96,21 +88,25 @@ func shouldCheckLength(t string) bool {
 
 // Creates a new modbus sensor instance
 func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resource.Config, logger logging.Logger) (sensor.Sensor, error) {
+
 	c, cancelFunc := context.WithCancel(context.Background())
-	b := ModbusSensor{
+	s := ModbusSensor{
 		Named:      conf.ResourceName().AsNamed(),
 		logger:     logger,
 		cancelFunc: cancelFunc,
 		ctx:        c,
 	}
-
-	if err := b.Reconfigure(ctx, deps, conf); err != nil {
+	//TODO: Get the modbus connection from the registry
+	client, err := GlobalClientRegistry.Get(conf.Attributes.String("client"))
+	if err != nil {
 		return nil, err
 	}
-	return &b, nil
+	s.modbus_client = client
+	return &s, nil
 }
 
 type ModbusSensor struct {
+	resource.AlwaysRebuild
 	resource.Named
 	mu                sync.RWMutex
 	logger            logging.Logger
@@ -120,8 +116,11 @@ type ModbusSensor struct {
 	modbus_connection resource.Named
 	component_type    string
 	component_desc    string
-	unitID            int // Optional unit ID for Modbus commands
+	unitID            int8 // Optional unit ID for Modbus commands
+	modbus_client     *modbusClient
 }
+
+//TODO: Remove comment after testing
 
 // Validate ensures all parts of the config are valid and important fields exist.
 // Returns implicit dependencies based on the config.
@@ -137,67 +136,99 @@ type ModbusSensor struct {
 //   return reqDeps, nil, nil
 // }
 
-// Configures the modbus sensor instance
-func (r *ModbusSensor) Reconfigure(ctx context.Context, deps resource.Dependencies, conf resource.Config) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.logger.Debug("Reconfiguring Modbus Sensor Component")
-
-	newConf, err := resource.NativeConfig[*ModbusSensorConfig](conf)
-	if err != nil {
-		return err
-	}
-
-	// In case the module has changed name
-	r.Named = conf.ResourceName().AsNamed()
-
-	return r.reconfigure(newConf, deps)
-}
-
-// reconfigures the modbus sensor instance
-func (r *ModbusSensor) reconfigure(newConf *ModbusSensorConfig, deps resource.Dependencies) error {
-	modbus_connection, _ := deps.Lookup(generic.Named(string(newConf.ModbusConnection)))
-	r.modbus_connection = modbus_connection.(resource.Named)
-	r.component_type = string(newConf.ComponentType)
-	r.component_desc = string(newConf.ComponentDesc)
-	r.unitID = int(newConf.UnitID)
-
-	r.blocks = newConf.Blocks
-	return nil
-}
-
 // Returns modbus register values
-func (r *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	// stringify the r.blocks array of json objects to pass it as an interface to the modbus_connection DoCommand()
-	// ints become float64 when passing a json object through a interface
-	jsonBytes, err := json.Marshal(r.blocks)
-	if err != nil {
-		r.logger.Infof("Error marshaling JSON:%v", err)
-		return nil, err
+func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.modbus_client == nil {
+		return nil, errors.New("modbus client not initialized")
 	}
-	jsonBlocks := string(jsonBytes)
-
-	// Create an empty map to store the register key/values
-	modbusResponse := make(map[string]interface{})
-	//r.logger.Infof("ModbusSensor Readings() calling ModbusConnection DoCommand() with %v", jsonBlocks)
-	modbusResponse, err = r.modbus_connection.DoCommand(ctx, map[string]interface{}{"blocks": jsonBlocks, "unit_id": r.unitID})
-
-	// Add the opinionated component key/value attributes to the response
-	if r.component_type != "" {
-		modbusResponse["component_type"] = r.component_type
+	results := map[string]interface{}{}
+	for _, block := range s.blocks {
+		switch block.Type {
+		case "coils":
+			b, err := s.modbus_client.ReadCoils(uint16(block.Offset), uint16(block.Length), s.unitID)
+			if err != nil {
+				return nil, err
+			}
+			writeBoolArrayToOutput(b, block, results)
+		case "discrete_inputs":
+			b, err := s.modbus_client.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length), s.unitID)
+			if err != nil {
+				return nil, err
+			}
+			writeBoolArrayToOutput(b, block, results)
+		case "holding_registers":
+			b, err := s.modbus_client.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length), s.unitID)
+			if err != nil {
+				return nil, err
+			}
+			writeUInt16ArrayToOutput(b, block, results)
+		case "input_registers":
+			b, err := s.modbus_client.ReadInputRegisters(uint16(block.Offset), uint16(block.Length), s.unitID)
+			if err != nil {
+				return nil, err
+			}
+			writeUInt16ArrayToOutput(b, block, results)
+		case "bytes":
+			b, e := s.modbus_client.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			writeByteArrayToOutput(b, block, results)
+		case "rawBytes":
+			b, e := s.modbus_client.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			writeByteArrayToOutput(b, block, results)
+		case "uint8":
+			b, e := s.modbus_client.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = int32(b)
+		case "int16":
+			b, e := s.modbus_client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = int32(b)
+		case "uint16":
+			b, e := s.modbus_client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = int32(b)
+		case "int32":
+			b, e := s.modbus_client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "uint32":
+			b, e := s.modbus_client.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "float32":
+			b, e := s.modbus_client.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		case "float64":
+			b, e := s.modbus_client.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			if e != nil {
+				return nil, e
+			}
+			results[block.Name] = b
+		default:
+			results[block.Name] = "unsupported type"
+		}
 	}
-	if r.component_desc != "" {
-		modbusResponse["component_description"] = r.component_desc
-	}
-
-	// Debug - print the map[]interface{}
-	//r.logger.Info(modbusResponse)
-
-	// Return the modbus Response and any component attributes
-	return modbusResponse, err
+	return results, nil
 }
 
 // DoCommand currently not implemented
@@ -206,11 +237,29 @@ func (*ModbusSensor) DoCommand(ctx context.Context, cmd map[string]interface{}) 
 }
 
 // Closes the modbus sensor instance
-func (r *ModbusSensor) Close(ctx context.Context) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.logger.Info("Closing Modbus Sensor Component")
-	r.cancelFunc()
+func (s *ModbusSensor) Close(ctx context.Context) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.logger.Info("Closing Modbus Sensor Component")
+	s.cancelFunc()
 
 	return nil
+}
+
+func writeBoolArrayToOutput(b []bool, block ModbusBlocks, results map[string]interface{}) {
+	for i, v := range b {
+		field_name := block.Name + "_" + fmt.Sprint(i)
+		results[field_name] = v
+	}
+}
+
+func writeUInt16ArrayToOutput(b []uint16, block ModbusBlocks, results map[string]interface{}) {
+	for i, v := range b {
+		field_name := block.Name + "_" + fmt.Sprint(i)
+		results[field_name] = strconv.Itoa(int(v))
+	}
+}
+
+func writeByteArrayToOutput(b []byte, block ModbusBlocks, results map[string]interface{}) {
+	results[block.Name] = hex.EncodeToString(b)
 }
