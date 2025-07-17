@@ -92,128 +92,114 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 		logger:     logger,
 		cancelFunc: cancelFunc,
 		ctx:        c,
+		blocks:     newConf.Blocks,
 	}
 
 	client, err := GlobalClientRegistry.Get(newConf.ModbusConnection)
 	if err != nil {
 		return nil, err
 	}
-	s.modbus_client = client
+	s.mc = client
 	return &s, nil
 }
 
 type ModbusSensor struct {
 	resource.AlwaysRebuild
 	resource.Named
-	mu            sync.RWMutex
-	logger        logging.Logger
-	cancelFunc    context.CancelFunc
-	ctx           context.Context
-	blocks        []ModbusBlocks
-	unitID        *uint8 // Optional unit ID for Modbus commands
-	modbus_client *modbusClient
+	mu         sync.RWMutex
+	logger     logging.Logger
+	cancelFunc context.CancelFunc
+	ctx        context.Context
+	blocks     []ModbusBlocks
+	unitID     *uint8 // Optional unit ID for Modbus commands
+	mc         *modbusClient
 }
-
-//TODO: Remove comment after testing
-
-// Validate ensures all parts of the config are valid and important fields exist.
-// Returns implicit dependencies based on the config.
-// The path is the JSON path in your robot's config (not the `Config` struct) to the
-// resource being validated; e.g. "components.0".
-// func (r *ModbusSensor) Validate(path string) ([]string, []string, error) {
-// 	// Add config validation code here
-// 	var reqDeps []string
-//   if r.ModbusConnectionName == "" {
-//     return nil, nil, resource.NewConfigValidationFieldRequiredError(path, "modbus_connection_name")
-//   }
-//   reqDeps = append(reqDeps, r.ModbusConnectionName)
-//   return reqDeps, nil, nil
-// }
 
 // Returns modbus register values
 func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if s.modbus_client == nil {
+	if s.mc == nil {
 		return nil, errors.New("modbus client not initialized")
 	}
 	results := map[string]interface{}{}
 	for _, block := range s.blocks {
 		switch block.Type {
 		case "coils":
-			b, err := s.modbus_client.ReadCoils(uint16(block.Offset), uint16(block.Length), s.unitID)
+			b, err := s.mc.ReadCoils(uint16(block.Offset), uint16(block.Length), s.unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
+			s.mc.logger.Warnf("Read %d coils starting at offset %d", len(b), block.Offset)
 		case "discrete_inputs":
-			b, err := s.modbus_client.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length), s.unitID)
+			b, err := s.mc.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length), s.unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
 		case "holding_registers":
-			b, err := s.modbus_client.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length), s.unitID)
+			b, err := s.mc.ReadHoldingRegisters(uint16(block.Offset), uint16(block.Length), s.unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeUInt16ArrayToOutput(b, block, results)
 		case "input_registers":
-			b, err := s.modbus_client.ReadInputRegisters(uint16(block.Offset), uint16(block.Length), s.unitID)
+			b, err := s.mc.ReadInputRegisters(uint16(block.Offset), uint16(block.Length), s.unitID)
 			if err != nil {
 				return nil, err
 			}
 			writeUInt16ArrayToOutput(b, block, results)
 		case "bytes":
-			b, e := s.modbus_client.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			writeByteArrayToOutput(b, block, results)
 		case "rawBytes":
-			b, e := s.modbus_client.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadRawBytes(uint16(block.Offset), uint16(block.Length), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			writeByteArrayToOutput(b, block, results)
 		case "uint8":
-			b, e := s.modbus_client.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadUInt8(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = int32(b)
 		case "int16":
-			b, e := s.modbus_client.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = int32(b)
 		case "uint16":
-			b, e := s.modbus_client.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadUInt16(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = int32(b)
 		case "int32":
-			b, e := s.modbus_client.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = b
 		case "uint32":
-			b, e := s.modbus_client.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadUInt32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = b
 		case "float32":
-			b, e := s.modbus_client.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadFloat32(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
 			results[block.Name] = b
 		case "float64":
-			b, e := s.modbus_client.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
+			b, e := s.mc.ReadFloat64(uint16(block.Offset), modbus.HOLDING_REGISTER, s.unitID)
 			if e != nil {
 				return nil, e
 			}
@@ -222,6 +208,7 @@ func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 			results[block.Name] = "unsupported type"
 		}
 	}
+	s.logger.Infof("Readings for sensor %s: %v", s.Named.Name, results)
 	return results, nil
 }
 

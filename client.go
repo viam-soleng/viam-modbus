@@ -109,6 +109,22 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 		config:     clientConfig,
 	}
 
+	// now that the client is created and configured, attempt to connect
+	mc, err := client.newClient(&clientConfig)
+	if err != nil {
+		logger.Errorf("Failed to create modbus client: %#v", err)
+		return nil, err
+	}
+	err = mc.Open()
+	if err != nil {
+		// error out if we failed to connect/open the device
+		// note: multiple Open() attempts can be made on the same client until
+		// the connection succeeds (i.e. err == nil), calling the constructor again
+		// is unnecessary.
+		// likewise, a client can be opened and closed as many times as needed.
+	}
+	client.client = mc
+
 	err = GlobalClientRegistry.Add(client.name.Name, client)
 	if err != nil {
 		return nil, err
@@ -554,9 +570,21 @@ func (mc *modbusClient) reinitializeModbusClient() error {
 
 // TODO: Implement Modbus client creation logic
 func (mc *modbusClient) newClient(config *modbus.ClientConfiguration) (*modbus.ModbusClient, error) {
+	mc.logger.Infof("Creating new modbus client with config: %#v", config)
 	client, err := modbus.NewClient(config)
 	if err != nil {
 		mc.logger.Errorf("Failed to create modbus client: %#v", err)
+		return nil, err
+	}
+	// now that the client is created and configured, attempt to connect
+	err = client.Open()
+	if err != nil {
+		// error out if we failed to connect/open the device
+		// note: multiple Open() attempts can be made on the same client until
+		// the connection succeeds (i.e. err == nil), calling the constructor again
+		// is unnecessary.
+		// likewise, a client can be opened and closed as many times as needed.
+		mc.logger.Errorf("Failed to open modbus client: %#v", err)
 		return nil, err
 	}
 	return client, nil
