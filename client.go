@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/simonvetter/modbus"
-	"github.com/viam-soleng/viam-modbus/common"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/services/generic"
@@ -78,12 +77,12 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 		return nil, err
 	}
 
-	endianness, err := common.GetEndianness(newConf.Endianness)
+	endianness, err := GetEndianness(newConf.Endianness)
 	if err != nil {
 		return nil, err
 	}
 
-	wordOrder, err := common.GetWordOrder(newConf.WordOrder)
+	wordOrder, err := GetWordOrder(newConf.WordOrder)
 	if err != nil {
 		return nil, err
 	}
@@ -551,4 +550,26 @@ func (r *modbusClient) initializeModbusClient() error {
 func (r *modbusClient) reinitializeModbusClient() error {
 	r.logger.Warnf("Re-initializing modbus client")
 	return r.initializeModbusClient()
+}
+
+func GetEndianness(s string) (modbus.Endianness, error) {
+	switch s {
+	case "big":
+		return modbus.BIG_ENDIAN, nil
+	case "little":
+		return modbus.LITTLE_ENDIAN, nil
+	default:
+		return 0, fmt.Errorf("invalid endianness")
+	}
+}
+
+func GetWordOrder(s string) (modbus.WordOrder, error) {
+	switch s {
+	case "high":
+		return modbus.HIGH_WORD_FIRST, nil
+	case "low":
+		return modbus.LOW_WORD_FIRST, nil
+	default:
+		return 0, fmt.Errorf("invalid word order")
+	}
 }
