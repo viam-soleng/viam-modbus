@@ -117,30 +117,30 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 	return client, nil
 }
 
-func (gs *modbusClient) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
+func (mc *modbusClient) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
 	return nil, fmt.Errorf("DoCommand not implemented")
 }
 
-func (gs *modbusClient) Close(ctx context.Context) error {
-	GlobalClientRegistry.Remove(gs.name.Name)
+func (mc *modbusClient) Close(ctx context.Context) error {
+	GlobalClientRegistry.Remove(mc.name.Name)
 	return nil
 }
 
-func (gs *modbusClient) Name() resource.Name {
-	return gs.name
+func (mc *modbusClient) Name() resource.Name {
+	return mc.name
 }
 
-func (r *modbusClient) ReadCoils(offset, length uint16, unitID *uint8) ([]bool, error) {
+func (mc *modbusClient) ReadCoils(offset, length uint16, unitID *uint8) ([]bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(uint8(*unitID))
+			mc.client.SetUnitId(uint8(*unitID))
 		}
-		b, err := r.client.ReadCoils(offset, length)
+		b, err := mc.client.ReadCoils(offset, length)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return nil, err
 			}
@@ -172,17 +172,17 @@ func (r *modbusClient) ReadCoil(offset uint16, unitID *uint8) (bool, error) {
 	return false, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadDiscreteInputs(offset, length uint16, unitID *uint8) ([]bool, error) {
+func (mc *modbusClient) ReadDiscreteInputs(offset, length uint16, unitID *uint8) ([]bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadDiscreteInputs(offset, length)
+		b, err := mc.client.ReadDiscreteInputs(offset, length)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return nil, err
 			}
@@ -193,17 +193,17 @@ func (r *modbusClient) ReadDiscreteInputs(offset, length uint16, unitID *uint8) 
 	return nil, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadDiscreteInput(offset uint16, unitID *uint8) (bool, error) {
+func (mc *modbusClient) ReadDiscreteInput(offset uint16, unitID *uint8) (bool, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadDiscreteInput(offset)
+		b, err := mc.client.ReadDiscreteInput(offset)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return false, err
 			}
@@ -214,17 +214,17 @@ func (r *modbusClient) ReadDiscreteInput(offset uint16, unitID *uint8) (bool, er
 	return false, ErrRetriesExhausted
 }
 
-func (r *modbusClient) WriteCoil(offset uint16, value bool, unitID *uint8) error {
+func (mc *modbusClient) WriteCoil(offset uint16, value bool, unitID *uint8) error {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		err := r.client.WriteCoil(offset, value)
+		err := mc.client.WriteCoil(offset, value)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return err
 			}
@@ -235,17 +235,17 @@ func (r *modbusClient) WriteCoil(offset uint16, value bool, unitID *uint8) error
 	return ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadHoldingRegisters(offset, length uint16, unitID *uint8) ([]uint16, error) {
+func (mc *modbusClient) ReadHoldingRegisters(offset, length uint16, unitID *uint8) ([]uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadRegisters(offset, length, modbus.HOLDING_REGISTER)
+		b, err := mc.client.ReadRegisters(offset, length, modbus.HOLDING_REGISTER)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return nil, err
 			}
@@ -256,17 +256,17 @@ func (r *modbusClient) ReadHoldingRegisters(offset, length uint16, unitID *uint8
 	return nil, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadInputRegisters(offset, length uint16, unitID *uint8) ([]uint16, error) {
+func (mc *modbusClient) ReadInputRegisters(offset, length uint16, unitID *uint8) ([]uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadRegisters(offset, length, modbus.INPUT_REGISTER)
+		b, err := mc.client.ReadRegisters(offset, length, modbus.INPUT_REGISTER)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return nil, err
 			}
@@ -277,17 +277,17 @@ func (r *modbusClient) ReadInputRegisters(offset, length uint16, unitID *uint8) 
 	return nil, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadInt32(offset uint16, regType modbus.RegType, unitID *uint8) (int32, error) {
+func (mc *modbusClient) ReadInt32(offset uint16, regType modbus.RegType, unitID *uint8) (int32, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadUint32(offset, regType)
+		b, err := mc.client.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -298,17 +298,17 @@ func (r *modbusClient) ReadInt32(offset uint16, regType modbus.RegType, unitID *
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadUInt32(offset uint16, regType modbus.RegType, unitID *uint8) (uint32, error) {
+func (mc *modbusClient) ReadUInt32(offset uint16, regType modbus.RegType, unitID *uint8) (uint32, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadUint32(offset, regType)
+		b, err := mc.client.ReadUint32(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -319,17 +319,17 @@ func (r *modbusClient) ReadUInt32(offset uint16, regType modbus.RegType, unitID 
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadUInt64(offset uint16, regType modbus.RegType, unitID *uint8) (uint64, error) {
+func (mc *modbusClient) ReadUInt64(offset uint16, regType modbus.RegType, unitID *uint8) (uint64, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadUint64(offset, regType)
+		b, err := mc.client.ReadUint64(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -340,17 +340,17 @@ func (r *modbusClient) ReadUInt64(offset uint16, regType modbus.RegType, unitID 
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadFloat32(offset uint16, regType modbus.RegType, unitID *uint8) (float32, error) {
+func (mc *modbusClient) ReadFloat32(offset uint16, regType modbus.RegType, unitID *uint8) (float32, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadFloat32(offset, regType)
+		b, err := mc.client.ReadFloat32(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -361,17 +361,17 @@ func (r *modbusClient) ReadFloat32(offset uint16, regType modbus.RegType, unitID
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadFloat64(offset uint16, regType modbus.RegType, unitID *uint8) (float64, error) {
+func (mc *modbusClient) ReadFloat64(offset uint16, regType modbus.RegType, unitID *uint8) (float64, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadFloat64(offset, regType)
+		b, err := mc.client.ReadFloat64(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -382,17 +382,17 @@ func (r *modbusClient) ReadFloat64(offset uint16, regType modbus.RegType, unitID
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadUInt8(offset uint16, regType modbus.RegType, unitID *uint8) (uint8, error) {
+func (mc *modbusClient) ReadUInt8(offset uint16, regType modbus.RegType, unitID *uint8) (uint8, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadRegister(offset, regType)
+		b, err := mc.client.ReadRegister(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -403,17 +403,17 @@ func (r *modbusClient) ReadUInt8(offset uint16, regType modbus.RegType, unitID *
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadInt16(offset uint16, regType modbus.RegType, unitID *uint8) (int16, error) {
+func (mc *modbusClient) ReadInt16(offset uint16, regType modbus.RegType, unitID *uint8) (int16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadRegister(offset, regType)
+		b, err := mc.client.ReadRegister(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -424,17 +424,17 @@ func (r *modbusClient) ReadInt16(offset uint16, regType modbus.RegType, unitID *
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadUInt16(offset uint16, regType modbus.RegType, unitID *uint8) (uint16, error) {
+func (mc *modbusClient) ReadUInt16(offset uint16, regType modbus.RegType, unitID *uint8) (uint16, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadRegister(offset, regType)
+		b, err := mc.client.ReadRegister(offset, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return 0, err
 			}
@@ -445,17 +445,17 @@ func (r *modbusClient) ReadUInt16(offset uint16, regType modbus.RegType, unitID 
 	return 0, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadBytes(offset, length uint16, regType modbus.RegType, unitID *uint8) ([]byte, error) {
+func (mc *modbusClient) ReadBytes(offset, length uint16, regType modbus.RegType, unitID *uint8) ([]byte, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadBytes(offset, length, regType)
+		b, err := mc.client.ReadBytes(offset, length, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return nil, err
 			}
@@ -466,17 +466,17 @@ func (r *modbusClient) ReadBytes(offset, length uint16, regType modbus.RegType, 
 	return nil, ErrRetriesExhausted
 }
 
-func (r *modbusClient) ReadRawBytes(offset, length uint16, regType modbus.RegType, unitID *uint8) ([]byte, error) {
+func (mc *modbusClient) ReadRawBytes(offset, length uint16, regType modbus.RegType, unitID *uint8) ([]byte, error) {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
-		b, err := r.client.ReadRawBytes(offset, length, regType)
+		b, err := mc.client.ReadRawBytes(offset, length, regType)
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return nil, err
 			}
@@ -487,47 +487,47 @@ func (r *modbusClient) ReadRawBytes(offset, length uint16, regType modbus.RegTyp
 	return nil, ErrRetriesExhausted
 }
 
-func (r *modbusClient) WriteUInt16(offset uint16, value uint16, unitID *uint8) error {
-	return r.WriteWithRetry(func() error {
-		return r.client.WriteRegister(offset, value)
+func (mc *modbusClient) WriteUInt16(offset uint16, value uint16, unitID *uint8) error {
+	return mc.WriteWithRetry(func() error {
+		return mc.client.WriteRegister(offset, value)
 	}, unitID)
 }
 
-func (r *modbusClient) WriteUInt32(offset uint16, value uint32, unitID *uint8) error {
-	return r.WriteWithRetry(func() error {
-		return r.client.WriteUint32(offset, value)
+func (mc *modbusClient) WriteUInt32(offset uint16, value uint32, unitID *uint8) error {
+	return mc.WriteWithRetry(func() error {
+		return mc.client.WriteUint32(offset, value)
 	}, unitID)
 }
 
-func (r *modbusClient) WriteUInt64(offset uint16, value uint64, unitID *uint8) error {
-	return r.WriteWithRetry(func() error {
-		return r.client.WriteUint64(offset, value)
+func (mc *modbusClient) WriteUInt64(offset uint16, value uint64, unitID *uint8) error {
+	return mc.WriteWithRetry(func() error {
+		return mc.client.WriteUint64(offset, value)
 	}, unitID)
 }
 
-func (r *modbusClient) WriteFloat32(offset uint16, value float32, unitID *uint8) error {
-	return r.WriteWithRetry(func() error {
-		return r.client.WriteFloat32(offset, value)
+func (mc *modbusClient) WriteFloat32(offset uint16, value float32, unitID *uint8) error {
+	return mc.WriteWithRetry(func() error {
+		return mc.client.WriteFloat32(offset, value)
 	}, unitID)
 }
 
-func (r *modbusClient) WriteFloat64(offset uint16, value float64, unitID *uint8) error {
-	return r.WriteWithRetry(func() error {
-		return r.client.WriteFloat64(offset, value)
+func (mc *modbusClient) WriteFloat64(offset uint16, value float64, unitID *uint8) error {
+	return mc.WriteWithRetry(func() error {
+		return mc.client.WriteFloat64(offset, value)
 	}, unitID)
 }
 
-func (r *modbusClient) WriteWithRetry(w func() error, unitID *uint8) error {
+func (mc *modbusClient) WriteWithRetry(w func() error, unitID *uint8) error {
 	availableRetries := 3
 
 	for availableRetries > 0 {
 		if unitID != nil {
-			r.client.SetUnitId(*unitID)
+			mc.client.SetUnitId(*unitID)
 		}
 		err := w()
 		if err != nil {
 			availableRetries--
-			err := r.reinitializeModbusClient()
+			err := mc.reinitializeModbusClient()
 			if err != nil {
 				return err
 			}
@@ -538,18 +538,28 @@ func (r *modbusClient) WriteWithRetry(w func() error, unitID *uint8) error {
 	return ErrRetriesExhausted
 }
 
-func (r *modbusClient) initializeModbusClient() error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func (mc *modbusClient) initializeModbusClient() error {
+	mc.mu.Lock()
+	defer mc.mu.Unlock()
 	//TODO: Don't think this is needed or shall be pushed to the client registry
-	r.client.Open()
+	mc.client.Open()
 
 	return nil
 }
 
-func (r *modbusClient) reinitializeModbusClient() error {
-	r.logger.Warnf("Re-initializing modbus client")
-	return r.initializeModbusClient()
+func (mc *modbusClient) reinitializeModbusClient() error {
+	mc.logger.Warnf("Re-initializing modbus client")
+	return mc.initializeModbusClient()
+}
+
+// TODO: Implement Modbus client creation logic
+func (mc *modbusClient) newClient(config *modbus.ClientConfiguration) (*modbus.ModbusClient, error) {
+	client, err := modbus.NewClient(config)
+	if err != nil {
+		mc.logger.Errorf("Failed to create modbus client: %#v", err)
+		return nil, err
+	}
+	return client, nil
 }
 
 func GetEndianness(s string) (modbus.Endianness, error) {
@@ -572,14 +582,4 @@ func GetWordOrder(s string) (modbus.WordOrder, error) {
 	default:
 		return 0, fmt.Errorf("invalid word order")
 	}
-}
-
-// TODO: Implement Modbus client creation logic
-func (r *modbusClient) newModbusClient(config *modbus.ClientConfiguration) (*modbus.ModbusClient, error) {
-	client, err := modbus.NewClient(config)
-	if err != nil {
-		r.logger.Errorf("Failed to create modbus client: %#v", err)
-		return nil, err
-	}
-	return client, nil
 }
