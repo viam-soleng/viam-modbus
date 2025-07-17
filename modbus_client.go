@@ -123,11 +123,7 @@ func (gs *modbusClient) DoCommand(ctx context.Context, cmd map[string]interface{
 }
 
 func (gs *modbusClient) Close(ctx context.Context) error {
-	err := gs.client.Close()
-	if err != nil {
-		gs.logger.Errorf("Failed to close modbus client: %v", err)
-	}
-	GlobalClientRegistry.Remove(gs.name.ShortName())
+	GlobalClientRegistry.Remove(gs.name.Name)
 	return nil
 }
 
