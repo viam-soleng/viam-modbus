@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/simonvetter/modbus"
+	"go.viam.com/rdk/components/generic"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/services/generic"
 )
 
 var NamespaceFamily = resource.NewModelFamily("viam-soleng", "modbus")
-var ModbusClientModel = NamespaceFamily.WithModel("clients")
+var ModbusClientModel = NamespaceFamily.WithModel("client")
 
 var ErrRetriesExhausted = fmt.Errorf("retries exhausted")
 
@@ -21,7 +21,7 @@ func init() {
 	resource.RegisterComponent(
 		generic.API,
 		ModbusClientModel,
-		resource.Registration[generic.Service, *modbusClientConfig]{
+		resource.Registration[generic.Resource, *modbusClientConfig]{
 			Constructor: newModbusClient,
 		})
 }
@@ -71,7 +71,7 @@ type modbusClient struct {
 	config modbus.ClientConfiguration
 }
 
-func newModbusClient(ctx context.Context, deps resource.Dependencies, config resource.Config, logger logging.Logger) (generic.Service, error) {
+func newModbusClient(ctx context.Context, deps resource.Dependencies, config resource.Config, logger logging.Logger) (generic.Resource, error) {
 	newConf, err := resource.NativeConfig[*modbusClientConfig](config)
 	if err != nil {
 		return nil, err
