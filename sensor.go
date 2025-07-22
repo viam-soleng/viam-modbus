@@ -208,7 +208,6 @@ func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 			results[block.Name] = "unsupported type"
 		}
 	}
-	s.logger.Infof("Readings for sensor %s: %v", s.Named.Name, results)
 	return results, nil
 }
 
