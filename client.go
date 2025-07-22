@@ -108,29 +108,42 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 		wordOrder:  wordOrder,
 		config:     clientConfig,
 	}
+	// Add the modbus client to the registry
+	err = GlobalClientRegistry.Add(client.name.Name, client)
+	if err != nil {
+		return nil, err
+	}
 
-	// now that the client is created and configured, attempt to connect
-	mc, err := client.newClient(&clientConfig)
+	err = client.newClient(&clientConfig)
 	if err != nil {
 		logger.Errorf("Failed to create modbus client: %#v", err)
 		return nil, err
 	}
-	err = mc.Open()
+	return client, nil
+}
+
+func (mc *modbusClient) newClient(config *modbus.ClientConfiguration) error {
+	mc.logger.Infof("Creating new modbus client with config: %#v", config)
+	client, err := modbus.NewClient(config)
+	if err != nil {
+		mc.logger.Errorf("Failed to create modbus client: %#v", err)
+		return err
+	}
+	mc.client = client
+	// TODO: Consider moving opening the connection into the read/write APIs
+	// Need to better understand the what it means to keep the connection open vs open/close more often
+	// now that the client is created and configured, attempt to connect
+	err = mc.client.Open()
 	if err != nil {
 		// error out if we failed to connect/open the device
 		// note: multiple Open() attempts can be made on the same client until
 		// the connection succeeds (i.e. err == nil), calling the constructor again
 		// is unnecessary.
 		// likewise, a client can be opened and closed as many times as needed.
+		mc.logger.Errorf("Failed to open modbus client: %#v", err)
+		return err
 	}
-	client.client = mc
-
-	err = GlobalClientRegistry.Add(client.name.Name, client)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+	return nil
 }
 
 func (mc *modbusClient) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
@@ -147,6 +160,7 @@ func (mc *modbusClient) Name() resource.Name {
 }
 
 func (mc *modbusClient) ReadCoils(offset, length uint16, unitID *uint8) ([]bool, error) {
+	// TODO: Why do we need this retry logic? Using mutex should handle concurrency / queue requests
 	availableRetries := 3
 
 	for availableRetries > 0 {
@@ -228,27 +242,6 @@ func (mc *modbusClient) ReadDiscreteInput(offset uint16, unitID *uint8) (bool, e
 		}
 	}
 	return false, ErrRetriesExhausted
-}
-
-func (mc *modbusClient) WriteCoil(offset uint16, value bool, unitID *uint8) error {
-	availableRetries := 3
-
-	for availableRetries > 0 {
-		if unitID != nil {
-			mc.client.SetUnitId(*unitID)
-		}
-		err := mc.client.WriteCoil(offset, value)
-		if err != nil {
-			availableRetries--
-			err := mc.reinitializeModbusClient()
-			if err != nil {
-				return err
-			}
-		} else {
-			return nil
-		}
-	}
-	return ErrRetriesExhausted
 }
 
 func (mc *modbusClient) ReadHoldingRegisters(offset, length uint16, unitID *uint8) ([]uint16, error) {
@@ -503,6 +496,27 @@ func (mc *modbusClient) ReadRawBytes(offset, length uint16, regType modbus.RegTy
 	return nil, ErrRetriesExhausted
 }
 
+func (mc *modbusClient) WriteCoil(offset uint16, value bool, unitID *uint8) error {
+	availableRetries := 3
+
+	for availableRetries > 0 {
+		if unitID != nil {
+			mc.client.SetUnitId(*unitID)
+		}
+		err := mc.client.WriteCoil(offset, value)
+		if err != nil {
+			availableRetries--
+			err := mc.reinitializeModbusClient()
+			if err != nil {
+				return err
+			}
+		} else {
+			return nil
+		}
+	}
+	return ErrRetriesExhausted
+}
+
 func (mc *modbusClient) WriteUInt16(offset uint16, value uint16, unitID *uint8) error {
 	return mc.WriteWithRetry(func() error {
 		return mc.client.WriteRegister(offset, value)
@@ -554,40 +568,19 @@ func (mc *modbusClient) WriteWithRetry(w func() error, unitID *uint8) error {
 	return ErrRetriesExhausted
 }
 
+// TODO: Don't think this is needed or shall be pushed to the client registry
 func (mc *modbusClient) initializeModbusClient() error {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
-	//TODO: Don't think this is needed or shall be pushed to the client registry
 	mc.client.Open()
 
 	return nil
 }
 
+// TODO: Don't think this is needed or shall be pushed to the client registry
 func (mc *modbusClient) reinitializeModbusClient() error {
 	mc.logger.Warnf("Re-initializing modbus client")
 	return mc.initializeModbusClient()
-}
-
-// TODO: Implement Modbus client creation logic
-func (mc *modbusClient) newClient(config *modbus.ClientConfiguration) (*modbus.ModbusClient, error) {
-	mc.logger.Infof("Creating new modbus client with config: %#v", config)
-	client, err := modbus.NewClient(config)
-	if err != nil {
-		mc.logger.Errorf("Failed to create modbus client: %#v", err)
-		return nil, err
-	}
-	// now that the client is created and configured, attempt to connect
-	err = client.Open()
-	if err != nil {
-		// error out if we failed to connect/open the device
-		// note: multiple Open() attempts can be made on the same client until
-		// the connection succeeds (i.e. err == nil), calling the constructor again
-		// is unnecessary.
-		// likewise, a client can be opened and closed as many times as needed.
-		mc.logger.Errorf("Failed to open modbus client: %#v", err)
-		return nil, err
-	}
-	return client, nil
 }
 
 func GetEndianness(s string) (modbus.Endianness, error) {
