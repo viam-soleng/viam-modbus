@@ -1,4 +1,4 @@
-module viam-modbus
+module github.com/viam-soleng/viam-modbus
 
 go 1.23.8
 
@@ -6,8 +6,6 @@ toolchain go1.24.3
 
 require (
 	github.com/simonvetter/modbus v1.6.3
-	github.com/stretchr/testify v1.10.0
-	go.viam.com/api v0.1.455
 	go.viam.com/rdk v0.83.0
 )
 
@@ -134,6 +132,7 @@ require (
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/srikrsna/protoc-gen-gotag v0.6.2 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/viamrobotics/ice/v2 v2.3.39 // indirect
@@ -161,6 +160,7 @@ require (
 	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	go.viam.com/api v0.1.455 // indirect
 	go.viam.com/test v1.2.4 // indirect
 	go.viam.com/utils v0.1.149 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20230525183740-e7c30c78aeb2 // indirect

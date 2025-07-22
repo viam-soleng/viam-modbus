@@ -19,8 +19,8 @@
   ],
   "build": {
     "setup": "",
-    "build": "make package",
-    "path": "bin/viam-modbus",
+    "build": "make module",
+    "path": "module.tar.gz",
     "darwin_deps": [
       "nlopt-static",
       "go"
@@ -31,6 +31,5 @@
       "darwin/arm64"
     ]
   },
-  "path": "module.tar.gz",
   "entrypoint": "bin/viam-modbus"
 }
