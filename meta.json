@@ -10,11 +10,13 @@
     },
     {
       "api": "rdk:component:generic",
-      "model": "viam-soleng:generic:modbus-connection"
+      "model": "viam-soleng:generic:modbus-connection",
+      "markdown_link": "README.md#modbus-client-configuration"
     },
     {
       "api": "rdk:component:sensor",
-      "model": "viam-soleng:sensor:modbus-tcp"
+      "model": "viam-soleng:sensor:modbus-tcp",
+      "markdown_link": "README.md#modbus-sensor-configuration"
     }
   ],
   "build": {
