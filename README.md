@@ -26,12 +26,12 @@ Add this to your modbus client component for TCP communication.
 ### TCP Client Example
 
 ```json
-  "modbus": {
-    "url": "tcp://192.168.1.124:502",
-    "word_order": "low",
-    "endianness": "big",
-    "timeout_ms": 10000
-  }
+{
+  "url": "tcp://192.168.1.124:502",
+  "word_order": "low",
+  "endianness": "big",
+  "timeout_ms": 10000
+}
 ```
 
 #### TCP Client Configuration Attributes
@@ -50,11 +50,11 @@ Add this to your modbus client component for TCP communication.
 Add this to your modbus client component for serial communication.
 
 ```json
-  "modbus": {
-    "url": "rtu:///dev/tty...",
-    "speed": 115200,
-    "timeout_ms": 10000
-  }
+{
+  "url": "rtu:///dev/tty...",
+  "speed": 115200,
+  "timeout_ms": 10000
+}
 ```
 
 #### Serial Client Configuration Attributes
