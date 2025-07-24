@@ -23,7 +23,18 @@ As with any other Viam module you can apply the configuration to your component 
 
 Add this to your modbus client component for TCP communication.
 
-### TCP Client Example
+### TCP Client Example (versions 4.x)
+
+```json
+modbus: {
+  "url": "tcp://192.168.1.124:502",
+  "word_order": "low",
+  "endianness": "big",
+  "timeout_ms": 10000
+}
+```
+
+### TCP Client Example (versions >=5.x)
 
 ```json
 {
