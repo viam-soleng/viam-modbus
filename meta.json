@@ -22,6 +22,11 @@
       "api": "rdk:component:sensor",
       "model": "viam-soleng:sensor:modbus-tcp",
       "markdown_link": "README.md#modbus-sensor-configuration"
+    },
+    {
+      "api": "rdk:component:sensor",
+      "model": "viam-soleng:modbus:sensor",
+      "markdown_link": "README.md#modbus-sensor-configuration"
     }
   ],
   "build": {
