@@ -163,6 +163,7 @@ func (mc *modbusClient) ReadCoils(offset, length uint16, unitID *uint8) ([]bool,
 		}
 		b, err := mc.client.ReadCoils(offset, length)
 		if err != nil {
+			mc.logger.Debugf("Failed to read coils: %v", err)
 			availableRetries--
 			err := mc.reConnect()
 			if err != nil {
@@ -566,8 +567,11 @@ func (mc *modbusClient) reConnect() error {
 	mc.mu.Lock()
 	defer mc.mu.Unlock()
 	mc.logger.Debugf("Re-initializing modbus client")
-	mc.client.Open()
-
+	err := mc.client.Open()
+	if err != nil {
+		mc.logger.Errorf("Failed to re-open modbus client: %#v", err)
+		return err
+	}
 	return nil
 }
 
