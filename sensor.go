@@ -28,9 +28,9 @@ func init() {
 }
 
 type ModbusSensorConfig struct {
-	ModbusConnection string         `json:"modbus_connection_name"`
-	Blocks           []ModbusBlocks `json:"blocks"`
-	UnitID           int            `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
+	ModbusClient string         `json:"modbus_connection_name"`
+	Blocks       []ModbusBlocks `json:"blocks"`
+	UnitID       int            `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
 }
 
 type ModbusBlocks struct {
@@ -41,7 +41,7 @@ type ModbusBlocks struct {
 }
 
 func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error) {
-	if cfg.ModbusConnection == "" {
+	if cfg.ModbusClient == "" {
 		return nil, nil, resource.NewConfigValidationFieldRequiredError(path, "modbus_connection_name")
 	}
 
@@ -67,7 +67,7 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 	if cfg.UnitID < 0 || cfg.UnitID > 247 {
 		return nil, nil, fmt.Errorf("unit_id must be between 0 and 247 or removed, got %d", cfg.UnitID)
 	}
-	return []string{string(cfg.ModbusConnection)}, nil, nil
+	return []string{string(cfg.ModbusClient)}, nil, nil
 }
 
 func shouldCheckLength(t string) bool {
@@ -95,7 +95,7 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 		blocks:     newConf.Blocks,
 	}
 
-	client, err := GlobalClientRegistry.Get(newConf.ModbusConnection)
+	client, err := GlobalClientRegistry.Get(newConf.ModbusClient)
 	if err != nil {
 		return nil, err
 	}
