@@ -30,7 +30,7 @@ func init() {
 type ModbusSensorConfig struct {
 	ModbusClient string         `json:"modbus_connection_name"`
 	Blocks       []ModbusBlocks `json:"blocks"`
-	UnitID       int            `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
+	UnitID       int            `json:"unit_id"`
 }
 
 type ModbusBlocks struct {
@@ -64,8 +64,8 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 		}
 	}
 
-	if cfg.UnitID < 0 || cfg.UnitID > 247 {
-		return nil, nil, fmt.Errorf("unit_id must be between 0 and 247 or removed, got %d", cfg.UnitID)
+	if cfg.UnitID < 1 || cfg.UnitID > 247 {
+		return nil, nil, fmt.Errorf("unit_id must be between 1 and 247 or removed, got %d", cfg.UnitID)
 	}
 	return []string{string(cfg.ModbusClient)}, nil, nil
 }
@@ -93,6 +93,13 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 		cancelFunc: cancelFunc,
 		ctx:        c,
 		blocks:     newConf.Blocks,
+	}
+
+	if newConf.UnitID > 0 {
+		unitID := uint8(newConf.UnitID)
+		s.unitID = &unitID
+	} else {
+		s.unitID = nil
 	}
 
 	client, err := GlobalClientRegistry.Get(newConf.ModbusClient)
