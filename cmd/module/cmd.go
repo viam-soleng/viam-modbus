@@ -13,5 +13,6 @@ func main() {
 	module.ModularMain(
 		resource.APIModel{API: generic.API, Model: viammodbus.ModbusClientModel},
 		resource.APIModel{API: sensor.API, Model: viammodbus.ModbusSensorModel},
+		resource.APIModel{API: sensor.API, Model: viammodbus.CoilSensorModel},
 	)
 }

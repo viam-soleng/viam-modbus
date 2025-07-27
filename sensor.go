@@ -28,9 +28,9 @@ func init() {
 }
 
 type ModbusSensorConfig struct {
-	ModbusConnection string         `json:"modbus_connection_name"`
-	Blocks           []ModbusBlocks `json:"blocks"`
-	UnitID           int            `json:"unit_id,omitempty"` // Optional unit ID for Modbus commands
+	ModbusClient string         `json:"modbus_connection_name"`
+	Blocks       []ModbusBlocks `json:"blocks"`
+	UnitID       int            `json:"unit_id"`
 }
 
 type ModbusBlocks struct {
@@ -41,7 +41,7 @@ type ModbusBlocks struct {
 }
 
 func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error) {
-	if cfg.ModbusConnection == "" {
+	if cfg.ModbusClient == "" {
 		return nil, nil, resource.NewConfigValidationFieldRequiredError(path, "modbus_connection_name")
 	}
 
@@ -63,11 +63,10 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 			return nil, nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
 	}
-
-	if cfg.UnitID < 0 || cfg.UnitID > 247 {
-		return nil, nil, fmt.Errorf("unit_id must be between 0 and 247 or removed, got %d", cfg.UnitID)
+	if cfg.UnitID != 0 && (cfg.UnitID < 1 || cfg.UnitID > 247) {
+		return nil, nil, fmt.Errorf("unit_id must be between 1 and 247 or removed, got %d", cfg.UnitID)
 	}
-	return []string{string(cfg.ModbusConnection)}, nil, nil
+	return []string{string(cfg.ModbusClient)}, nil, nil
 }
 
 func shouldCheckLength(t string) bool {
@@ -95,7 +94,14 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 		blocks:     newConf.Blocks,
 	}
 
-	client, err := GlobalClientRegistry.Get(newConf.ModbusConnection)
+	if newConf.UnitID > 0 {
+		unitID := uint8(newConf.UnitID)
+		s.unitID = unitID
+	} else {
+		s.unitID = 1
+	}
+
+	client, err := GlobalClientRegistry.Get(newConf.ModbusClient)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +117,7 @@ type ModbusSensor struct {
 	cancelFunc context.CancelFunc
 	ctx        context.Context
 	blocks     []ModbusBlocks
-	unitID     *uint8 // Optional unit ID for Modbus commands
+	unitID     uint8 // Optional unit ID for Modbus commands
 	mc         *modbusClient
 }
 
@@ -131,7 +137,6 @@ func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
-			s.mc.logger.Warnf("Read %d coils starting at offset %d", len(b), block.Offset)
 		case "discrete_inputs":
 			b, err := s.mc.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length), s.unitID)
 			if err != nil {
