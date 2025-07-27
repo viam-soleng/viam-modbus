@@ -131,7 +131,6 @@ func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 				return nil, err
 			}
 			writeBoolArrayToOutput(b, block, results)
-			s.mc.logger.Warnf("Read %d coils starting at offset %d", len(b), block.Offset)
 		case "discrete_inputs":
 			b, err := s.mc.ReadDiscreteInputs(uint16(block.Offset), uint16(block.Length), s.unitID)
 			if err != nil {

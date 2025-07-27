@@ -33,8 +33,8 @@ type modbusClientConfig struct {
 	Parity        uint   `json:"parity"`
 	StopBits      uint   `json:"stop_bits"`
 	Timeout       int    `json:"timeout_ms"`
-	Endianness    string `json:"endianness"`
-	WordOrder     string `json:"word_order"`
+	Endianness    string `json:"endianness"` // TODO: Restructure so it can be set on the client as well as the requests
+	WordOrder     string `json:"word_order"` // TODO: Restructure so it can be set on the client as well as the requests
 	TLSClientCert string `json:"tls_client_cert"`
 	TLSRootCAs    string `json:"tls_root_cas"`
 }
@@ -43,13 +43,10 @@ func (cfg *modbusClientConfig) Validate(path string) ([]string, []string, error)
 	if cfg.URL == "" {
 		return nil, nil, fmt.Errorf("url is required")
 	}
-	if cfg.Timeout < 0 {
-		return nil, nil, fmt.Errorf("timeout must be non-negative")
-	}
-	if cfg.Endianness != "big" && cfg.Endianness != "little" {
+	if cfg.Endianness != "" && cfg.Endianness != "big" && cfg.Endianness != "little" {
 		return nil, nil, fmt.Errorf("endianness must be %v or %v", "big", "little")
 	}
-	if cfg.WordOrder != "high" && cfg.WordOrder != "low" {
+	if cfg.WordOrder != "" && cfg.WordOrder != "high" && cfg.WordOrder != "low" {
 		return nil, nil, fmt.Errorf("word_order must be %v or %v", "high", "low")
 	}
 	if cfg.TLSClientCert != "" || cfg.TLSRootCAs != "" {
