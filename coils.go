@@ -24,7 +24,7 @@ func init() {
 type coilSensorConfig struct {
 	ModbusClient string `json:"modbus_client"`
 	Offset       uint16 `json:"offset"`
-	UnitID       *uint8 `json:"unit_id,omitempty"`
+	UnitID       uint8  `json:"unit_id"`
 }
 
 func (cfg *coilSensorConfig) Validate(path string) ([]string, []string, error) {

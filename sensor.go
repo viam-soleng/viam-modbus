@@ -63,8 +63,7 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 			return nil, nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
 	}
-
-	if cfg.UnitID < 1 || cfg.UnitID > 247 {
+	if cfg.UnitID != 0 && (cfg.UnitID < 1 || cfg.UnitID > 247) {
 		return nil, nil, fmt.Errorf("unit_id must be between 1 and 247 or removed, got %d", cfg.UnitID)
 	}
 	return []string{string(cfg.ModbusClient)}, nil, nil
@@ -97,9 +96,9 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 
 	if newConf.UnitID > 0 {
 		unitID := uint8(newConf.UnitID)
-		s.unitID = &unitID
+		s.unitID = unitID
 	} else {
-		s.unitID = nil
+		s.unitID = 1
 	}
 
 	client, err := GlobalClientRegistry.Get(newConf.ModbusClient)
@@ -118,7 +117,7 @@ type ModbusSensor struct {
 	cancelFunc context.CancelFunc
 	ctx        context.Context
 	blocks     []ModbusBlocks
-	unitID     *uint8 // Optional unit ID for Modbus commands
+	unitID     uint8 // Optional unit ID for Modbus commands
 	mc         *modbusClient
 }
 
