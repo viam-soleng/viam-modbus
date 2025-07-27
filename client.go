@@ -74,12 +74,13 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 		return nil, err
 	}
 
-	endianness, err := GetEndianness(newConf.Endianness)
+	// TODO: Check as seems not being used in query code
+	endianness, err := modbus.BIG_ENDIAN, nil //GetEndianness(newConf.Endianness)
 	if err != nil {
 		return nil, err
 	}
-
-	wordOrder, err := GetWordOrder(newConf.WordOrder)
+	// TODO: Check as seems not being used in query code
+	wordOrder, err := modbus.HIGH_WORD_FIRST, nil //GetWordOrder(newConf.WordOrder)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +152,6 @@ func (mc *modbusClient) Name() resource.Name {
 }
 
 func (mc *modbusClient) ReadCoils(offset, length uint16, unitID *uint8) ([]bool, error) {
-	// TODO: Why do we need this retry logic? Using mutex should handle concurrency / queue requests
 	availableRetries := 3
 
 	for availableRetries > 0 {
