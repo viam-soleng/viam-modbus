@@ -110,6 +110,8 @@ The modbus sensor component allows you to read modbus coils and register values.
 
 ## Testing
 
+For TCP there is a nice public modbus server available: [https://modbus.pult.online/](https://modbus.pult.online/)
+
 Modbus test utilities are helpful:
 
 - Slave (Server) - [diagslave](https://www.modbusdriver.com/diagslave.html)
@@ -117,6 +119,7 @@ Modbus test utilities are helpful:
 
 ## TODO
 
+- Add write capability to v5
 - Authentication
 
 ## Credits
