@@ -1,60 +1,41 @@
 # Viam Modbus Module
 
 The Viam Modbus module enables seamless communication with modbus devices by acting as a client.
-It allows for reading and writing of coils or registers on the server, enabling efficient data exchange and operational command execution.
+It allows for reading and writing (currently only in module version 4. Version 5 wip) of coils or registers on the server, enabling efficient data exchange and operational command execution.
 
 This repository contains the `connection`and `sensor` components which abstract away a modbus interface and its registers.
 The Viam `connection`component(s) allows you to configure the modbus clients and the `sensor` component(s) allow you to read and write modbus registers.
 
 The module can easily be installed via the Viam registry:
-
 [Viam Modbus Module](https://app.viam.com/module/viam-soleng/viam-modbus)
 
-## Features
+> ⚠️ **Warning:**  
+> Module version `5.x.x` is a complete overhaul of version 4 and contains small breaking changes!
+> Upgrade instructions: `WIP` Reach out in the meantime.
 
-- **Data Acquisition:** Enables the reading of sensor data from a Modbus Server.
-- **Device Control:** Enables the reading of writing of coils and registers onto a Modbus Server.
-- **Configurable Parameters:** Offers customization options for the device address, word_order, endianness, timeouts, pin types, data types and more.
+Configuration Instructions for previous versions: [Versions <= 4.x.x](https://github.com/viam-soleng/viam-modbus/tree/1b4d2b5eff74fc4ae759ce06350f41a52aae1044)
 
-## Modbus Client Configuration
+## Modbus Client Configuration [modbus:client]
 
 The Viam modbus client component supports connections over tcp and serial. Which mode is used, depends on the `modbus.url` prefix as explained below.
 As with any other Viam module you can apply the configuration to your component into the `Configure` section.
 
-Add this to your modbus client component for TCP communication.
+Add this to your modbus client component for TCP or serial communication.
 
-### TCP Client Example (versions 4.x)
+### Modbus Client Attributes
 
-```json
-"modbus": {
-  "url": "tcp://192.168.1.124:502",
-  "word_order": "low",
-  "endianness": "big",
-  "timeout_ms": 10000
-}
-```
-
-### TCP Client Example (versions >=5.x)
-
-```json
-{
-  "url": "tcp://192.168.1.124:502",
-  "word_order": "low",
-  "endianness": "big",
-  "timeout_ms": 10000
-}
-```
-
-#### TCP Client Configuration Attributes
-
-| Name              | Type   | Inclusion    | Description                             |
-| ----------------- | ------ | ------------ | --------------------------------------- |
-| `url`             | string | **Required** | TCP Config: `"tcp://<ip address>:port"` |
-| `timeout_ms`      | string | Optional     | Connection timeout                      |
-| `endianness`      | string | Optional     |                                         |
-| `word_order`      | string | Optional     |                                         |
-| `tls_client_cert` | string | Optional     | Not implemented yet                     |
-| `tls_root_cas`    | string | Optional     | Not implemented yet                     |
+| Name              | Type   | Inclusion    | Applies   | Description                                                                        |
+| ----------------- | ------ | ------------ | --------- | ---------------------------------------------------------------------------------- |
+| `url`             | string | **Required** | TCP & RTU | TCP: `"tcp://hostname-or-ip-address:502"` / serial: `"rtu://<serial device path>"` |
+| `timeout_ms`      | string | Optional     | TCP & RTU | Connection timeout                                                                 |
+| `endianness`      | string | Optional     | TCP & RTU | One of `big` or `little`. Default `big`                                            |
+| `word_order`      | string | Optional     | TCP & RTU | One of `high` or `low` first. Default `high`                                       |
+| `speed`           | string | Optional     | RTU       | Default `19200` Bit (bit/s)                                                        |
+| `data_bits`       | uint   | Optional     | RTU       | Default `8`                                                                        |
+| `parity`          | uint   | Optional     | RTU       | Default `0` -> none                                                                |
+| `stop_bits`       | uint   | Optional     | RTU       | Default `2` if parity is none                                                      |
+| `tls_client_cert` | string | Optional     | TCP       | Not implemented yet                                                                |
+| `tls_root_cas`    | string | Optional     | TCP       | Not implemented yet                                                                |
 
 ### Serial / RTU Client Example
 
@@ -63,35 +44,47 @@ Add this to your modbus client component for serial communication.
 ```json
 {
   "url": "rtu:///dev/tty...",
-  "speed": 115200,
+  "speed": 9600
+}
+```
+
+### TCP Client Example
+
+```json
+{
+  "url": "tcp://192.168.1.124:502",
   "timeout_ms": 10000
 }
 ```
 
-#### Serial Client Configuration Attributes
+## Modbus Sensor Configuration [modbus:sensor]
 
-| Name         | Type   | Inclusion    | Description                                   |
-| ------------ | ------ | ------------ | --------------------------------------------- |
-| `url`        | string | **Required** | Serial Config: `"rtu://<serial device path>"` |
-| `speed`      | string | **Required** | Bit (bit/s)                                   |
-| `data_bits`  | uint   | Optional     |                                               |
-| `parity`     | uint   | Optional     |                                               |
-| `stop_bits`  | uint   | Optional     |                                               |
-| `timeout_ms` | string | Optional     | Connection timeout                            |
-| `endianness` | string | Optional     |                                               |
-| `word_order` | string | Optional     |                                               |
+The modbus sensor component allows you to read modbus coils and register values.
 
-## Modbus Sensor Configuration
+### Sensor Component Attributes
 
-The modbus sensor component allows you to read and write modbus coils and register values.
-You must specify the modbus client component by its name!
+| Name                     | Type    | Inclusion    | Description                                       |
+| ------------------------ | ------- | ------------ | ------------------------------------------------- |
+| `modbus_connection_name` | string  | **Required** | Provide the `name`of the Modbus client configured |
+| `blocks`                 | []Block | **Required** | Registers etc. to read see below                  |
+| `unit_id`                | int     | Optional     | Optionally set the unit id, valid range 0-247     |
+
+### Sensor Component Block Attributes
+
+| Name      | Type   | Inclusion    | Description                                                              |
+| --------- | ------ | ------------ | ------------------------------------------------------------------------ |
+| `name`    | string | **Required** | Name of the key for the value being read                                 |
+| `type`    | string | **Required** | "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
+| `offset`  | int    | **Required** | Register address decimal                                                 |
+| `length`  | int    | **Required** | Number of words to include from register address                         |
+| `unit_id` | int    | Optional     | Set the unit id, valid range 0-247                                       |
 
 ### Sensor Component Configuration Example
 
 ```json
 {
-  "modbus_connection_name": "modbus-connection-server",
-  "unit_id": 4,
+  "modbus_connection_name": "client",
+  "unit_id": 1,
   "blocks": [
     {
       "length": 1,
@@ -104,25 +97,7 @@ You must specify the modbus client component by its name!
 }
 ```
 
-### Sensor Component Attributes
-
-| Name                     | Type    | Inclusion    | Description                                   |
-| ------------------------ | ------- | ------------ | --------------------------------------------- |
-| `modbus_connection_name` | string  | **Required** | Name of the key for the value being read      |
-| `unit_id`                | int     | **Optional** | Optionally set the unit id, valid range 0-247 |
-| `blocks`                 | []Block | **Required** | Registers etc. to read see below              |
-
-### Sensor Component Block Attributes
-
-| Name      | Type   | Inclusion    | Description                                                              |
-| --------- | ------ | ------------ | ------------------------------------------------------------------------ |
-| `name`    | string | **Required** | Name of the key for the value being read                                 |
-| `type`    | string | **Required** | "input_registers" \| "discrete_inputs" \| "coils" \| "holding_registers" |
-| `offset`  | int    | **Required** | Register address decimal                                                 |
-| `length`  | int    | **Required** | Number of words to include from register address                         |
-| `unit_id` | int    | **Optional** | Set the unit id, valid range 0-247                                       |
-
-#### Modbus Data Model / Register Types
+### General Modbus Data Model / Register Types
 
 | Register Type          | Access     | Size               | Features                        |
 | ---------------------- | ---------- | ------------------ | ------------------------------- |
@@ -135,6 +110,8 @@ You must specify the modbus client component by its name!
 
 ## Testing
 
+For TCP there is a nice public modbus server available: [https://modbus.pult.online/](https://modbus.pult.online/)
+
 Modbus test utilities are helpful:
 
 - Slave (Server) - [diagslave](https://www.modbusdriver.com/diagslave.html)
@@ -142,6 +119,7 @@ Modbus test utilities are helpful:
 
 ## TODO
 
+- Add write capability to v5
 - Authentication
 
 ## Credits

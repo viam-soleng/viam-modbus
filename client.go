@@ -33,8 +33,8 @@ type modbusClientConfig struct {
 	Parity        uint   `json:"parity"`
 	StopBits      uint   `json:"stop_bits"`
 	Timeout       int    `json:"timeout_ms"`
-	Endianness    string `json:"endianness"` // TODO: Restructure so it can be set on the client as well as the requests
-	WordOrder     string `json:"word_order"` // TODO: Restructure so it can be set on the client as well as the requests
+	Endianness    string `json:"endianness"`
+	WordOrder     string `json:"word_order"`
 	TLSClientCert string `json:"tls_client_cert"`
 	TLSRootCAs    string `json:"tls_root_cas"`
 }
@@ -61,8 +61,8 @@ type modbusClient struct {
 	mu     sync.RWMutex
 	logger logging.Logger
 
-	endianness modbus.Endianness
-	wordOrder  modbus.WordOrder
+	endianness *modbus.Endianness
+	wordOrder  *modbus.WordOrder
 
 	client *modbus.ModbusClient
 	config modbus.ClientConfiguration
@@ -74,18 +74,10 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 		return nil, err
 	}
 
-	// TODO: Check as seems not being used in query code
-	endianness, err := modbus.BIG_ENDIAN, nil //GetEndianness(newConf.Endianness)
-	if err != nil {
-		return nil, err
+	var timeout time.Duration
+	if newConf.Timeout > 0 {
+		timeout = time.Millisecond * time.Duration(newConf.Timeout)
 	}
-	// TODO: Check as seems not being used in query code
-	wordOrder, err := modbus.HIGH_WORD_FIRST, nil //GetWordOrder(newConf.WordOrder)
-	if err != nil {
-		return nil, err
-	}
-
-	timeout := time.Millisecond * time.Duration(newConf.Timeout)
 
 	clientConfig := modbus.ClientConfiguration{
 		URL:      newConf.URL,
@@ -100,11 +92,9 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 	}
 
 	client := &modbusClient{
-		name:       config.ResourceName(),
-		logger:     logger,
-		endianness: endianness,
-		wordOrder:  wordOrder,
-		config:     clientConfig,
+		name:   config.ResourceName(),
+		logger: logger,
+		config: clientConfig,
 	}
 
 	// Create the modbus connection with the provided configuration
@@ -113,6 +103,10 @@ func newModbusClient(ctx context.Context, deps resource.Dependencies, config res
 		logger.Errorf("Failed to create modbus client: %#v", err)
 		return nil, err
 	}
+
+	// Set the endianness and word order for the client
+	setDecoding(client, newConf.Endianness, newConf.WordOrder)
+
 	// Add the modbus client to the registry
 	err = GlobalClientRegistry.Add(client.name.Name, client)
 	if err != nil {
@@ -136,6 +130,31 @@ func (mc *modbusClient) newModbusConnection(config *modbus.ClientConfiguration) 
 		return err
 	}
 	return nil
+}
+
+func setDecoding(mc *modbusClient, endianness, wordOrder string) {
+	if endianness != "" {
+		enc, err := GetEndianness(endianness)
+		if err != nil {
+			mc.logger.Errorf("Invalid endianness: %v", err)
+			return
+		}
+		mc.endianness = &enc
+	}
+	if wordOrder != "" {
+		wo, err := GetWordOrder(wordOrder)
+		if err != nil {
+			mc.logger.Errorf("Invalid word order: %v", err)
+			return
+		}
+		mc.wordOrder = &wo
+	}
+	if mc.endianness != nil && mc.wordOrder != nil {
+		mc.client.SetEncoding(*mc.endianness, *mc.wordOrder)
+		mc.logger.Infof("Set endianness to %v and word order to %v", endianness, wordOrder)
+	} else {
+		mc.logger.Infof("Using default endianness and word order")
+	}
 }
 
 func (mc *modbusClient) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
