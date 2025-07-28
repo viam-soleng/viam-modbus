@@ -65,17 +65,20 @@ func newCoilSensor(ctx context.Context, deps resource.Dependencies, config resou
 }
 
 func (cs *coilSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
-	value, err := cs.client.ReadCoil(cs.config.Offset, cs.config.UnitID)
-	if err != nil {
-		cs.logger.Errorf("Failed to read coil at offset %d: %v", cs.config.Offset, err)
-		return nil, err
-	}
+	return nil, fmt.Errorf("Coil component completed yet")
+	/*
+		value, err := cs.client.ReadCoil(cs.config.Offset, cs.config.UnitID)
+		if err != nil {
+			cs.logger.Errorf("Failed to read coil at offset %d: %v", cs.config.Offset, err)
+			return nil, err
+		}
 
-	readings := map[string]interface{}{
-		"coil": value,
-	}
+		readings := map[string]interface{}{
+			"coil": value,
+		}
 
-	return readings, nil
+		return readings, nil
+	*/
 }
 
 func (cs *coilSensor) DoCommand(ctx context.Context, cmd map[string]interface{}) (map[string]interface{}, error) {
