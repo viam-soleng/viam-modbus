@@ -7,7 +7,6 @@ This repository contains the `connection`and `sensor` components which abstract 
 The Viam `connection`component(s) allows you to configure the modbus clients and the `sensor` component(s) allow you to read and write modbus registers.
 
 The module can easily be installed via the Viam registry:
-
 [Viam Modbus Module](https://app.viam.com/module/viam-soleng/viam-modbus)
 
 > ⚠️ **Warning:**  
