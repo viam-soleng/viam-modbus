@@ -21,12 +21,12 @@
     {
       "api": "rdk:component:generic",
       "model": "viam-soleng:modbus:client",
-      "markdown_link": "README.md#modbus-client-configuration"
+      "markdown_link": "README.md#modbus-client-configuration-modbusclient"
     },
     {
       "api": "rdk:component:sensor",
       "model": "viam-soleng:modbus:sensor",
-      "markdown_link": "README.md#modbus-sensor-configuration"
+      "markdown_link": "README.md#modbus-sensor-configuration-modbussensor"
     },
     {
       "api": "rdk:component:sensor",
