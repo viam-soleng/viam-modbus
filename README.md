@@ -1,21 +1,21 @@
 # Viam Modbus Module
 
 The Viam Modbus module enables seamless communication with modbus devices by acting as a client.
-It allows for reading and writing (currently only in module version 4. Version 5 wip) of coils or registers on the server, enabling efficient data exchange and operational command execution.
+It allows for reading and writing (currently only in module version 0.4.x, version 0.5.x WIP) of coils or registers on the server, enabling efficient data exchange and operational command execution.
 
-This repository contains the `connection`and `sensor` components which abstract away a modbus interface and its registers.
-The Viam `connection`component(s) allows you to configure the modbus clients and the `sensor` component(s) allow you to read and write modbus registers.
+This repository contains the `client`and `sensor` components which abstract away a modbus interface and its registers.
+The Viam `client` component(s) allows you to configure the modbus clients and the `sensor` component(s) allow you to read and write modbus registers.
 
 The module can easily be installed via the Viam registry:
 [Viam Modbus Module](https://app.viam.com/module/viam-soleng/viam-modbus)
 
 > ⚠️ **Warning:**  
-> Module version `5.x.x` is a complete overhaul of version 4 and contains small breaking changes!
+> Module version `0.5.x` is a complete overhaul of version 0.4 and contains small breaking changes!
 > Upgrade instructions: `WIP` Reach out in the meantime.
 
-Configuration Instructions for previous versions: [Versions <= 4.x.x](https://github.com/viam-soleng/viam-modbus/tree/1b4d2b5eff74fc4ae759ce06350f41a52aae1044)
+Configuration Instructions for previous versions: [Versions <= 0.4.x](https://github.com/viam-soleng/viam-modbus/tree/1b4d2b5eff74fc4ae759ce06350f41a52aae1044)
 
-## Modbus Client Configuration [modbus:client]
+## Modbus Client Configuration [viam-soleng:modbus:client]
 
 The Viam modbus client component supports connections over tcp and serial. Which mode is used, depends on the `modbus.url` prefix as explained below.
 As with any other Viam module you can apply the configuration to your component into the `Configure` section.
@@ -57,19 +57,21 @@ Add this to your modbus client component for serial communication.
 }
 ```
 
-## Modbus Sensor Configuration [modbus:sensor]
+## Modbus Sensor Configuration [viam-soleng:modbus:sensor]
 
 The modbus sensor component allows you to read modbus coils and register values.
 
 ### Sensor Component Attributes
 
-| Name                     | Type    | Inclusion    | Description                                       |
-| ------------------------ | ------- | ------------ | ------------------------------------------------- |
-| `modbus_connection_name` | string  | **Required** | Provide the `name`of the Modbus client configured |
-| `blocks`                 | []Block | **Required** | Registers etc. to read see below                  |
-| `unit_id`                | int     | Optional     | Optionally set the unit id, valid range 0-247     |
+| Name                     | Type    | Inclusion    | Description                                                          |
+| ------------------------ | ------- | ------------ | -------------------------------------------------------------------- |
+| `modbus_connection_name` | string  | **Required** | Provide the `name`of the Modbus client configured                    |
+| `blocks`                 | []Block | **Required** | Registers etc. to read see below                                     |
+| `unit_id`                | int     | Optional     | Optionally set the unit id, valid range 0-247                        |
+| `component_type`         | string  | Optional     | Viam component type - a construct to aggregrate a block of registers |
+| `component_description`  | string  | Optional     | Viam component description - what this block of registers represents |
 
-### Sensor Component Block Attributes
+### Sensor Component []Block Attributes
 
 | Name      | Type   | Inclusion    | Description                                                              |
 | --------- | ------ | ------------ | ------------------------------------------------------------------------ |
@@ -85,13 +87,21 @@ The modbus sensor component allows you to read modbus coils and register values.
 {
   "modbus_connection_name": "client",
   "unit_id": 1,
+  "component_type": "tank",
+  "component_description": "Main storage fuel tank",
   "blocks": [
     {
       "length": 1,
-      "name": "potentiometer",
-      "offset": 0,
+      "name": "TankLevelMax",
+      "offset": 20,
       "type": "input_registers"
     },
+    {
+      "length": 1,
+      "name": "TankLevelActual",
+      "offset": 21,
+      "type": "holding_registers"
+    },    
     {...}
   ]
 }
@@ -108,9 +118,45 @@ The modbus sensor component allows you to read modbus coils and register values.
 
 [Modbus on Wikipedia](https://en.wikipedia.org/wiki/Modbus)
 
+## Viam Modbus Component aggregation
+
+Often, a block of registers will provide values for a single "thing". The "thing" might be a tank, engine, battery, etc.
+A Viam modbus sensor might be an aggregation of these registers.  Not part of the modbus protocol specification, Viam recommends
+grouping these registers into a sensor, defining a block of registers in an array, and giving the sensor a `component_type`
+and a `component_description`.  For example, a `tank` sensor might be described by several registers; the max capacity of
+the tank, the actual level of the tank, the percentage full of the tank. An `engine` might be many dozens of registers that
+describe the fuel pressure, fuel consumption rate, RPMs, turbocharger, exhaust gas temp, load. Listing them individually would
+be redundant.
+
+The modbus registers returned are raw values and it might be difficult to discern what the units of measure are for each
+particular register. Another useful Viam technique is to give the block `name` values with meaningful descriptions.
+For example, in the case of a `tank` component, these block name key/value pairs
+
+```json
+      "attributes": {
+        "modbus_connection_name": "modbus-yacht",
+        "component_type": "tank",
+        "component_description": "Fuel tank - Port",
+        "blocks": [
+          {
+            "name": "level_%",
+            ...
+          },
+          {
+            "name": "max_L",
+            ...
+          },
+          {
+            "name": "actual_L",
+            ...
+          }
+        ]
+      }  
+```
+
 ## Testing
 
-For TCP there is a nice public modbus server available: [https://modbus.pult.online/](https://modbus.pult.online/)
+For TCP there is a useful public modbus server available: [https://modbus.pult.online/](https://modbus.pult.online/)
 
 Modbus test utilities are helpful:
 
