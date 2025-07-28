@@ -28,9 +28,11 @@ func init() {
 }
 
 type ModbusSensorConfig struct {
-	ModbusClient string         `json:"modbus_connection_name"`
-	Blocks       []ModbusBlocks `json:"blocks"`
-	UnitID       int            `json:"unit_id"`
+	ModbusClient  string         `json:"modbus_connection_name"`
+	Blocks        []ModbusBlocks `json:"blocks"`
+	UnitID        int            `json:"unit_id"`
+	ComponentType string         `json:"component_type"`
+	ComponentDesc string         `json:"component_description"`
 }
 
 type ModbusBlocks struct {
@@ -66,6 +68,7 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 	if cfg.UnitID != 0 && (cfg.UnitID < 1 || cfg.UnitID > 247) {
 		return nil, nil, fmt.Errorf("unit_id must be between 1 and 247 or removed, got %d", cfg.UnitID)
 	}
+
 	return []string{string(cfg.ModbusClient)}, nil, nil
 }
 
@@ -87,11 +90,13 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 
 	c, cancelFunc := context.WithCancel(context.Background())
 	s := ModbusSensor{
-		Named:      conf.ResourceName().AsNamed(),
-		logger:     logger,
-		cancelFunc: cancelFunc,
-		ctx:        c,
-		blocks:     newConf.Blocks,
+		Named:          conf.ResourceName().AsNamed(),
+		logger:         logger,
+		cancelFunc:     cancelFunc,
+		ctx:            c,
+		blocks:         newConf.Blocks,
+		component_type: newConf.ComponentType,
+		component_desc: newConf.ComponentDesc,
 	}
 
 	if newConf.UnitID > 0 {
@@ -100,7 +105,8 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 	} else {
 		s.unitID = 1
 	}
-
+	s.logger.Info(s.component_desc)
+	s.logger.Info(s.component_type)
 	client, err := GlobalClientRegistry.Get(newConf.ModbusClient)
 	if err != nil {
 		return nil, err
@@ -112,13 +118,15 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 type ModbusSensor struct {
 	resource.AlwaysRebuild
 	resource.Named
-	mu         sync.RWMutex
-	logger     logging.Logger
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	blocks     []ModbusBlocks
-	unitID     uint8 // Optional unit ID for Modbus commands
-	mc         *modbusClient
+	mu             sync.RWMutex
+	logger         logging.Logger
+	cancelFunc     context.CancelFunc
+	ctx            context.Context
+	blocks         []ModbusBlocks
+	unitID         uint8 // Optional unit ID for Modbus commands
+	mc             *modbusClient
+	component_type string
+	component_desc string
 }
 
 // Returns modbus register values
@@ -213,6 +221,15 @@ func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 			results[block.Name] = "unsupported type"
 		}
 	}
+
+	// Add the opinionated component key/value attributes to the response
+	if s.component_type != "" {
+		results["component_type"] = s.component_type
+	}
+	if s.component_desc != "" {
+		results["component_description"] = s.component_desc
+	}
+
 	return results, nil
 }
 
