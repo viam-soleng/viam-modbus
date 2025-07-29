@@ -6,17 +6,18 @@
   "models": [
     {
       "api": "rdk:component:board",
-      "model": "viam-soleng:board:modbus-tcp"
+      "model": "viam-soleng:board:modbus-tcp",
+      "markdown_link": "UPGRADE.md#deprecated-resources"
     },
     {
       "api": "rdk:component:sensor",
       "model": "viam-soleng:sensor:modbus-tcp",
-      "markdown_link": "README.md#modbus-sensor-configuration"
+      "markdown_link": "UPGRADE.md#deprecated-resources"
     },
     {
       "api": "rdk:component:generic",
       "model": "viam-soleng:generic:modbus-connection",
-      "markdown_link": "README.md#modbus-client-configuration"
+      "markdown_link": "UPGRADE.md#deprecated-resources"
     },
     {
       "api": "rdk:component:generic",
