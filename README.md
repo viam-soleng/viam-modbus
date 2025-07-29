@@ -114,42 +114,6 @@ The modbus sensor component allows you to read modbus coils and register values.
 
 [Modbus on Wikipedia](https://en.wikipedia.org/wiki/Modbus)
 
-## Viam Modbus Component aggregation
-
-Often, a block of registers will provide values for a single "thing". The "thing" might be a tank, engine, battery, etc.
-A Viam modbus sensor might be an aggregation of these registers.  Not part of the modbus protocol specification, Viam recommends
-grouping these registers into a sensor, defining a block of registers in an array, and giving the sensor a `component_type`
-and a `component_description`.  For example, a `tank` sensor might be described by several registers; the max capacity of
-the tank, the actual level of the tank, the percentage full of the tank. An `engine` might be many dozens of registers that
-describe the fuel pressure, fuel consumption rate, RPMs, turbocharger, exhaust gas temp, load. Listing them individually would
-be redundant.
-
-The modbus registers returned are raw values and it might be difficult to discern what the units of measure are for each
-particular register. Another useful Viam technique is to give the block `name` values with meaningful descriptions.
-For example, in the case of a `tank` component, these block name key/value pairs
-
-```json
-      "attributes": {
-        "modbus_connection_name": "modbus-yacht",
-        "component_type": "tank",
-        "component_description": "Fuel tank - Port",
-        "blocks": [
-          {
-            "name": "level_%",
-            ...
-          },
-          {
-            "name": "max_L",
-            ...
-          },
-          {
-            "name": "actual_L",
-            ...
-          }
-        ]
-      }  
-```
-
 ## Testing
 
 For TCP there is a useful public modbus server available: [https://modbus.pult.online/](https://modbus.pult.online/)
