@@ -11,7 +11,7 @@ The module can easily be installed via the Viam registry:
 
 > ⚠️ **Warning:**  
 > Module version `5.x.x` is a complete overhaul of version 4 and contains small breaking changes!
-> Upgrade instructions: `WIP` Reach out in the meantime.
+> Upgrade instructions: [UPGRADE.md](./UPGRADE.md) Reach out in the meantime.
 
 Configuration Instructions for previous versions: [Versions <= 4.x.x](https://github.com/viam-soleng/viam-modbus/tree/1b4d2b5eff74fc4ae759ce06350f41a52aae1044)
 
