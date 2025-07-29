@@ -105,8 +105,7 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 	} else {
 		s.unitID = 1
 	}
-	s.logger.Info(s.component_desc)
-	s.logger.Info(s.component_type)
+
 	client, err := GlobalClientRegistry.Get(newConf.ModbusClient)
 	if err != nil {
 		return nil, err
