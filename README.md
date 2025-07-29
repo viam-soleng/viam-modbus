@@ -68,8 +68,6 @@ The modbus sensor component allows you to read modbus coils and register values.
 | `modbus_connection_name` | string  | **Required** | Provide the `name`of the Modbus client configured                    |
 | `blocks`                 | []Block | **Required** | Registers etc. to read see below                                     |
 | `unit_id`                | int     | Optional     | Optionally set the unit id, valid range 0-247                        |
-| `component_type`         | string  | Optional     | Viam component type - a construct to aggregrate a block of registers |
-| `component_description`  | string  | Optional     | Viam component description - what this block of registers represents |
 
 ### Sensor Component []Block Attributes
 
@@ -87,8 +85,6 @@ The modbus sensor component allows you to read modbus coils and register values.
 {
   "modbus_connection_name": "client",
   "unit_id": 1,
-  "component_type": "tank",
-  "component_description": "Main storage fuel tank",
   "blocks": [
     {
       "length": 1,
