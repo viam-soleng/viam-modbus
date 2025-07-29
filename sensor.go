@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"github.com/simonvetter/modbus"
@@ -248,16 +247,28 @@ func (s *ModbusSensor) Close(ctx context.Context) error {
 }
 
 func writeBoolArrayToOutput(b []bool, block ModbusBlocks, results map[string]interface{}) {
-	for i, v := range b {
-		field_name := block.Name + "_" + fmt.Sprint(i)
-		results[field_name] = v
+	// only rename block Name with "_0", "_1" if there are more than one in this array
+	if len(b) > 1 {
+		for i, v := range b {
+			field_name := block.Name + "_" + fmt.Sprint(i)
+			results[field_name] = v
+		}
+	} else {
+		results[block.Name] = b[0]
 	}
 }
 
 func writeUInt16ArrayToOutput(b []uint16, block ModbusBlocks, results map[string]interface{}) {
-	for i, v := range b {
-		field_name := block.Name + "_" + fmt.Sprint(i)
-		results[field_name] = strconv.Itoa(int(v))
+	// only rename block Name with "_0", "_1" if there are more than one in this array
+	if len(b) > 1 {
+		for i, v := range b {
+			field_name := block.Name + "_" + fmt.Sprint(i)
+			//results[field_name] = strconv.Itoa(int(v))
+			results[field_name] = int(v)
+		}
+	} else {
+		//results[block.Name] = strconv.Itoa(int(b[0]))
+		results[block.Name] = int(b[0])
 	}
 }
 
