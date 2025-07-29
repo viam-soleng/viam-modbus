@@ -1,10 +1,10 @@
 # Viam Modbus Module
 
 The Viam Modbus module enables seamless communication with modbus devices by acting as a client.
-It allows for reading and writing (currently only in module version 4. Version 5 wip) of coils or registers on the server, enabling efficient data exchange and operational command execution.
+It allows for reading and writing (currently only in module version 0.4.x, version 0.5.x WIP) of coils or registers on the server, enabling efficient data exchange and operational command execution.
 
-This repository contains the `connection`and `sensor` components which abstract away a modbus interface and its registers.
-The Viam `connection`component(s) allows you to configure the modbus clients and the `sensor` component(s) allow you to read and write modbus registers.
+This repository contains the `client`and `sensor` components which abstract away a modbus interface and its registers.
+The Viam `client` component(s) allows you to configure the modbus clients and the `sensor` component(s) allow you to read and write modbus registers.
 
 The module can easily be installed via the Viam registry:
 [Viam Modbus Module](https://app.viam.com/module/viam-soleng/viam-modbus)
@@ -13,9 +13,9 @@ The module can easily be installed via the Viam registry:
 > Module version `5.x.x` is a complete overhaul of version 4 and contains small breaking changes!
 > Upgrade instructions: [UPGRADE.md](./UPGRADE.md)
 
-Configuration Instructions for previous versions: [Versions <= 4.x.x](https://github.com/viam-soleng/viam-modbus/tree/1b4d2b5eff74fc4ae759ce06350f41a52aae1044)
+Configuration Instructions for previous versions: [Versions <= 0.4.x](https://github.com/viam-soleng/viam-modbus/tree/1b4d2b5eff74fc4ae759ce06350f41a52aae1044)
 
-## Modbus Client Configuration [modbus:client]
+## Modbus Client Configuration [viam-soleng:modbus:client]
 
 The Viam modbus client component supports connections over tcp and serial. Which mode is used, depends on the `modbus.url` prefix as explained below.
 As with any other Viam module you can apply the configuration to your component into the `Configure` section.
@@ -57,19 +57,19 @@ Add this to your modbus client component for serial communication.
 }
 ```
 
-## Modbus Sensor Configuration [modbus:sensor]
+## Modbus Sensor Configuration [viam-soleng:modbus:sensor]
 
 The modbus sensor component allows you to read modbus coils and register values.
 
 ### Sensor Component Attributes
 
-| Name                     | Type    | Inclusion    | Description                                       |
-| ------------------------ | ------- | ------------ | ------------------------------------------------- |
-| `modbus_connection_name` | string  | **Required** | Provide the `name`of the Modbus client configured |
-| `blocks`                 | []Block | **Required** | Registers etc. to read see below                  |
-| `unit_id`                | int     | Optional     | Optionally set the unit id, valid range 0-247     |
+| Name                     | Type    | Inclusion    | Description                                                          |
+| ------------------------ | ------- | ------------ | -------------------------------------------------------------------- |
+| `modbus_connection_name` | string  | **Required** | Provide the `name`of the Modbus client configured                    |
+| `blocks`                 | []Block | **Required** | Registers etc. to read see below                                     |
+| `unit_id`                | int     | Optional     | Optionally set the unit id, valid range 0-247                        |
 
-### Sensor Component Block Attributes
+### Sensor Component []Block Attributes
 
 | Name      | Type   | Inclusion    | Description                                                              |
 | --------- | ------ | ------------ | ------------------------------------------------------------------------ |
@@ -88,10 +88,16 @@ The modbus sensor component allows you to read modbus coils and register values.
   "blocks": [
     {
       "length": 1,
-      "name": "potentiometer",
-      "offset": 0,
+      "name": "TankLevelMax",
+      "offset": 20,
       "type": "input_registers"
     },
+    {
+      "length": 1,
+      "name": "TankLevelActual",
+      "offset": 21,
+      "type": "holding_registers"
+    },    
     {...}
   ]
 }
@@ -110,7 +116,7 @@ The modbus sensor component allows you to read modbus coils and register values.
 
 ## Testing
 
-For TCP there is a nice public modbus server available: [https://modbus.pult.online/](https://modbus.pult.online/)
+For TCP there is a useful public modbus server available: [https://modbus.pult.online/](https://modbus.pult.online/)
 
 Modbus test utilities are helpful:
 
