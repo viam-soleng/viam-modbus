@@ -50,6 +50,7 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 		return nil, nil, errors.New("blocks is required")
 	}
 
+	nameCount := make(map[string]int)
 	for i, block := range cfg.Blocks {
 		if block.Name == "" {
 			return nil, nil, fmt.Errorf("name is required in block %v", i)
@@ -63,9 +64,17 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 		if shouldCheckLength(block.Type) && block.Length <= 0 {
 			return nil, nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
+		nameCount[block.Name]++
 	}
 	if cfg.UnitID != 0 && (cfg.UnitID < 1 || cfg.UnitID > 247) {
 		return nil, nil, fmt.Errorf("unit_id must be between 1 and 247 or removed, got %d", cfg.UnitID)
+	}
+
+	// Check for any duplicate values in the block map [{"name":"duplicate"},{"name":"duplicate"}]
+	for name, count := range nameCount {
+		if count > 1 {
+			return nil, nil, fmt.Errorf("name '%s' appears %d times\n", name, count)
+		}
 	}
 
 	return []string{string(cfg.ModbusClient)}, nil, nil
