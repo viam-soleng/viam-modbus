@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"github.com/simonvetter/modbus"
@@ -28,9 +27,11 @@ func init() {
 }
 
 type ModbusSensorConfig struct {
-	ModbusClient string         `json:"modbus_connection_name"`
-	Blocks       []ModbusBlocks `json:"blocks"`
-	UnitID       int            `json:"unit_id"`
+	ModbusClient  string         `json:"modbus_connection_name"`
+	Blocks        []ModbusBlocks `json:"blocks"`
+	UnitID        int            `json:"unit_id"`
+	ComponentType string         `json:"component_type"`
+	ComponentDesc string         `json:"component_description"`
 }
 
 type ModbusBlocks struct {
@@ -49,6 +50,7 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 		return nil, nil, errors.New("blocks is required")
 	}
 
+	nameCount := make(map[string]int)
 	for i, block := range cfg.Blocks {
 		if block.Name == "" {
 			return nil, nil, fmt.Errorf("name is required in block %v", i)
@@ -62,10 +64,19 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 		if shouldCheckLength(block.Type) && block.Length <= 0 {
 			return nil, nil, fmt.Errorf("length must be non-zero and non-negative in block %v", i)
 		}
+		nameCount[block.Name]++
 	}
 	if cfg.UnitID != 0 && (cfg.UnitID < 1 || cfg.UnitID > 247) {
 		return nil, nil, fmt.Errorf("unit_id must be between 1 and 247 or removed, got %d", cfg.UnitID)
 	}
+
+	// Check for any duplicate values in the block map [{"name":"duplicate"},{"name":"duplicate"}]
+	for name, count := range nameCount {
+		if count > 1 {
+			return nil, nil, fmt.Errorf("name '%s' appears %d times\n", name, count)
+		}
+	}
+
 	return []string{string(cfg.ModbusClient)}, nil, nil
 }
 
@@ -87,11 +98,13 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 
 	c, cancelFunc := context.WithCancel(context.Background())
 	s := ModbusSensor{
-		Named:      conf.ResourceName().AsNamed(),
-		logger:     logger,
-		cancelFunc: cancelFunc,
-		ctx:        c,
-		blocks:     newConf.Blocks,
+		Named:          conf.ResourceName().AsNamed(),
+		logger:         logger,
+		cancelFunc:     cancelFunc,
+		ctx:            c,
+		blocks:         newConf.Blocks,
+		component_type: newConf.ComponentType,
+		component_desc: newConf.ComponentDesc,
 	}
 
 	if newConf.UnitID > 0 {
@@ -112,13 +125,15 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 type ModbusSensor struct {
 	resource.AlwaysRebuild
 	resource.Named
-	mu         sync.RWMutex
-	logger     logging.Logger
-	cancelFunc context.CancelFunc
-	ctx        context.Context
-	blocks     []ModbusBlocks
-	unitID     uint8 // Optional unit ID for Modbus commands
-	mc         *modbusClient
+	mu             sync.RWMutex
+	logger         logging.Logger
+	cancelFunc     context.CancelFunc
+	ctx            context.Context
+	blocks         []ModbusBlocks
+	unitID         uint8 // Optional unit ID for Modbus commands
+	mc             *modbusClient
+	component_type string
+	component_desc string
 }
 
 // Returns modbus register values
@@ -213,6 +228,15 @@ func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{
 			results[block.Name] = "unsupported type"
 		}
 	}
+
+	// Add the opinionated component key/value attributes to the response
+	if s.component_type != "" {
+		results["component_type"] = s.component_type
+	}
+	if s.component_desc != "" {
+		results["component_description"] = s.component_desc
+	}
+
 	return results, nil
 }
 
@@ -232,16 +256,28 @@ func (s *ModbusSensor) Close(ctx context.Context) error {
 }
 
 func writeBoolArrayToOutput(b []bool, block ModbusBlocks, results map[string]interface{}) {
-	for i, v := range b {
-		field_name := block.Name + "_" + fmt.Sprint(i)
-		results[field_name] = v
+	// only rename block Name with "_0", "_1" if there are more than one in this array
+	if len(b) > 1 {
+		for i, v := range b {
+			field_name := block.Name + "_" + fmt.Sprint(i)
+			results[field_name] = v
+		}
+	} else {
+		results[block.Name] = b[0]
 	}
 }
 
 func writeUInt16ArrayToOutput(b []uint16, block ModbusBlocks, results map[string]interface{}) {
-	for i, v := range b {
-		field_name := block.Name + "_" + fmt.Sprint(i)
-		results[field_name] = strconv.Itoa(int(v))
+	// only rename block Name with "_0", "_1" if there are more than one in this array
+	if len(b) > 1 {
+		for i, v := range b {
+			field_name := block.Name + "_" + fmt.Sprint(i)
+			//results[field_name] = strconv.Itoa(int(v))
+			results[field_name] = int(v)
+		}
+	} else {
+		//results[block.Name] = strconv.Itoa(int(b[0]))
+		results[block.Name] = int(b[0])
 	}
 }
 
