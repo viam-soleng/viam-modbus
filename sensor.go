@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/simonvetter/modbus"
 	"go.viam.com/rdk/components/sensor"
@@ -32,6 +33,7 @@ type ModbusSensorConfig struct {
 	UnitID        int            `json:"unit_id"`
 	ComponentType string         `json:"component_type"`
 	ComponentDesc string         `json:"component_description"`
+	CacheMs       int            `json:"cache_ms"`
 }
 
 type ModbusBlocks struct {
@@ -69,6 +71,9 @@ func (cfg *ModbusSensorConfig) Validate(path string) ([]string, []string, error)
 	if cfg.UnitID != 0 && (cfg.UnitID < 1 || cfg.UnitID > 247) {
 		return nil, nil, fmt.Errorf("unit_id must be between 1 and 247 or removed, got %d", cfg.UnitID)
 	}
+	if cfg.CacheMs < 0 {
+		return nil, nil, fmt.Errorf("cache_ms must be non-negative, got %d", cfg.CacheMs)
+	}
 
 	// Check for any duplicate values in the block map [{"name":"duplicate"},{"name":"duplicate"}]
 	for name, count := range nameCount {
@@ -105,6 +110,7 @@ func NewModbusSensor(ctx context.Context, deps resource.Dependencies, conf resou
 		blocks:         newConf.Blocks,
 		component_type: newConf.ComponentType,
 		component_desc: newConf.ComponentDesc,
+		cacheDuration:  time.Duration(newConf.CacheMs) * time.Millisecond,
 	}
 
 	if newConf.UnitID > 0 {
@@ -134,10 +140,33 @@ type ModbusSensor struct {
 	mc             *modbusClient
 	component_type string
 	component_desc string
+
+	cacheDuration time.Duration
+	cacheMu       sync.Mutex
+	cachedAt      time.Time
+	cachedResults map[string]interface{}
 }
 
-// Returns modbus register values
+// Returns modbus register values, optionally served from a recent cached read.
 func (s *ModbusSensor) Readings(ctx context.Context, extra map[string]interface{}) (map[string]interface{}, error) {
+	if s.cacheDuration > 0 {
+		s.cacheMu.Lock()
+		defer s.cacheMu.Unlock()
+		if s.cachedResults != nil && time.Since(s.cachedAt) < s.cacheDuration {
+			return s.cachedResults, nil
+		}
+		results, err := s.readBlocks()
+		if err != nil {
+			return nil, err
+		}
+		s.cachedResults = results
+		s.cachedAt = time.Now()
+		return results, nil
+	}
+	return s.readBlocks()
+}
+
+func (s *ModbusSensor) readBlocks() (map[string]interface{}, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.mc == nil {
